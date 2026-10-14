@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\JobController;
 use App\Http\Controllers\Admin\PolicyController;
 use App\Http\Controllers\Admin\ProviderProfileController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Middleware\Admin\EnsureAdminSession;
 use App\Http\Middleware\Admin\RequireAdminReauth;
 use Illuminate\Support\Facades\Route;
@@ -17,6 +18,14 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::redirect('/', '/admin');
+
+// Email links (invitation, password reset). Tokens travel in the URL fragment.
+Route::middleware('throttle:auth-public')->prefix('app')->name('onboarding.')->group(function () {
+    Route::get('invite', [OnboardingController::class, 'showInvite'])->name('invite');
+    Route::post('invite', [OnboardingController::class, 'acceptInvite'])->name('invite.accept');
+    Route::get('reset-password', [OnboardingController::class, 'showReset'])->name('reset');
+    Route::post('reset-password', [OnboardingController::class, 'reset'])->name('reset.submit');
+});
 
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware('guest:web')->group(function () {

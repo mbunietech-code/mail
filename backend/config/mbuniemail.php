@@ -136,7 +136,8 @@ return [
     ],
 
     // Deep-link / web base that password-reset and invitation links point to.
-    'app_link_url' => rtrim((string) env('MBUNIEMAIL_APP_LINK_URL', 'https://localhost/app'), '/'),
+    // Defaults to the backend's own /app pages (OnboardingController).
+    'app_link_url' => rtrim((string) env('MBUNIEMAIL_APP_LINK_URL', rtrim((string) env('APP_URL', 'https://localhost'), '/').'/app'), '/'),
 
     // Detective controls (docs/OPERATIONS_RUNBOOK.md §3). Email goes to the security owner.
     'alerts' => [

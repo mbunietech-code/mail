@@ -1,0 +1,97 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import 'core/theme.dart';
+import 'features/accounts/accounts_screen.dart';
+import 'features/auth/auth_controller.dart';
+import 'features/auth/login_screen.dart';
+import 'features/auth/mfa_screen.dart';
+import 'features/compose/compose_screen.dart';
+import 'features/mailbox/home_shell.dart';
+import 'features/reader/reader_screen.dart';
+import 'features/settings/settings_screen.dart';
+
+final themeModeProvider = NotifierProvider<ThemeModeController, ThemeMode>(
+  ThemeModeController.new,
+);
+
+class ThemeModeController extends Notifier<ThemeMode> {
+  @override
+  ThemeMode build() => ThemeMode.system;
+  void set(ThemeMode mode) => state = mode;
+}
+
+/// Bridges Riverpod auth state to go_router's refresh mechanism.
+class _AuthListenable extends ChangeNotifier {
+  _AuthListenable(Ref ref) {
+    ref.listen(authControllerProvider, (_, _) => notifyListeners());
+  }
+}
+
+final routerProvider = Provider<GoRouter>((ref) {
+  final listenable = _AuthListenable(ref);
+  return GoRouter(
+    initialLocation: '/mail',
+    refreshListenable: listenable,
+    redirect: (context, state) {
+      final auth = ref.read(authControllerProvider);
+      final at = state.matchedLocation;
+      final target = switch (auth) {
+        AuthLoading() => '/splash',
+        SignedOut() => '/login',
+        MfaPending() => '/mfa',
+        ShowRecoveryCodes() => '/mfa',
+        SignedIn() => null,
+      };
+      if (target != null) return at == target ? null : target;
+      // Signed in: never linger on auth screens.
+      return const {'/splash', '/login', '/mfa'}.contains(at) ? '/mail' : null;
+    },
+    routes: [
+      GoRoute(path: '/splash', builder: (_, _) => const _Splash()),
+      GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
+      GoRoute(path: '/mfa', builder: (_, _) => const MfaScreen()),
+      GoRoute(path: '/mail', builder: (_, _) => const HomeShell()),
+      GoRoute(
+        path: '/message/:id',
+        builder: (_, s) => ReaderScreen(messageId: s.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/compose',
+        builder: (_, s) => ComposeScreen(
+          draft: s.extra is ComposeDraft
+              ? s.extra! as ComposeDraft
+              : const ComposeDraft(),
+        ),
+      ),
+      GoRoute(path: '/accounts', builder: (_, _) => const AccountsScreen()),
+      GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
+    ],
+  );
+});
+
+class MbunieMailApp extends ConsumerWidget {
+  const MbunieMailApp({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return MaterialApp.router(
+      title: 'MbunieMail',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ref.watch(themeModeProvider),
+      routerConfig: ref.watch(routerProvider),
+    );
+  }
+}
+
+class _Splash extends StatelessWidget {
+  const _Splash();
+
+  @override
+  Widget build(BuildContext context) => const Scaffold(
+    body: Center(child: CircularProgressIndicator(semanticsLabel: 'Loading')),
+  );
+}

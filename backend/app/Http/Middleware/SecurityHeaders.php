@@ -32,7 +32,7 @@ class SecurityHeaders
                 : "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
         }
 
-        if ($request->is('api/*') || $request->is('admin', 'admin/*')) {
+        if ($request->is('api/*') || $request->is('admin', 'admin/*') || $request->is('app/*')) {
             // API data and admin pages (audit log, employee lists) must never be cached.
             $headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
             $headers->set('Pragma', 'no-cache');

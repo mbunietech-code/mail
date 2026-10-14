@@ -176,6 +176,22 @@ Flavors: `dev` (allows `DEV DATA` fixtures, localhost API) and `prod` (fixtures 
 
 ---
 
+### 4.1 Implementation notes (Phase 6, 2026-10-14)
+- Implemented with Riverpod 3.4, go_router 18, dio 5.11, flutter_secure_storage 11.2 and flutter_widget_from_html_core 0.17.
+- **ADR-006 verified:** Android uses AES-GCM data encryption with an RSA-OAEP key in the Android Keystore; Windows uses DPAPI (`CryptProtectData`) plus Credential Manager.
+- **Deviations from §4, recorded as open items:**
+  - No SQLCipher/drift offline cache yet, so state is in memory only.
+  - The composer is plain text converted to escaped HTML, not flutter_quill.
+  - No FCM or local notifications yet.
+  - Password-reset and invitation links open server-rendered pages (`/app/*`) instead of app deep links.
+  - No certificate pinning.
+- **Security properties enforced in code and tests:**
+  - the bearer token is only sent to the API origin;
+  - token refresh is single-flight, and a revoked session is wiped locally;
+  - the Idempotency-Key is stable across retries;
+  - HTML renders without a WebView or JavaScript; remote images only through the signed proxy after consent; links are confirmed before opening;
+  - Android: `allowBackup=false`, data-extraction rules exclude everything, cleartext only in debug builds, minSdk 26.
+
 ## 5. Laravel backend design
 
 ### 5.1 Modules (namespaces under `app/`)

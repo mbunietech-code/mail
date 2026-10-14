@@ -2,6 +2,34 @@
 
 Only tests that were actually executed are recorded here.
 
+## 2026-10-14 — Phase 6 (Flutter app), branch `phase-6-app`
+Toolchain (installed by the user): Flutter 3.47.7 / Dart 3.13.5, Android SDK build-tools 36, Android Studio JBR (OpenJDK 25).
+
+| Check | Result |
+|---|---|
+| `infra/scripts/check-app.sh` | ✅ format · `flutter analyze` no issues · **15 tests passing** · SEC-T28 (no token storage outside SecureTokenStore) · release refuses plain HTTP |
+| `infra/scripts/check-backend.sh` | ✅ **244 tests** (adds `OnboardingPagesTest`) · PHPStan L6 0 · audit · gitleaks (tree + history) |
+| Android debug APK | ✅ `flutter build apk --debug` (first build 46 min on this laptop: Gradle 9.3.1, dependencies, CMake). `aapt2`: package `tz.co.mt.mbuniemail`, minSdk 26, targetSdk 36, `allowBackup=false`, `fullBackupContent=false`, data-extraction rules applied, permissions **INTERNET only** (plus the AndroidX-internal receiver permission) |
+| Windows build | ⛔ requires a Windows PC with Visual Studio 2022 C++ workload |
+
+Tests:
+- `api_client_test` (7): bearer attachment; **single-flight refresh under three concurrent 401s**; revoked refresh wipes secure storage and signals sign-out; problem+json mapping with field errors and Retry-After; offline detection; **token never sent to a foreign host** (4 variants); no request without a session.
+- `app_test` (8, full app against a fake backend):
+  - generic login error;
+  - password + TOTP sign-in;
+  - forced enrolment with one-time recovery codes;
+  - phone and desktop layouts;
+  - reader: phishing banner, remote images blocked and **not fetched**, real sender address shown, link confirmation sheet;
+  - composer: address validation and **the same Idempotency-Key across retries**;
+  - sign-out wipes tokens.
+
+Mutation checks, all detected: token sent to any host · refresh not single-flight · new idempotency key per attempt.
+
+### Defects found in this phase
+1. **Onboarding gap (functional):** invitation and password-reset emails linked to pages that did not exist, so new employees could not join (US-01). Added `/app/invite` and `/app/reset-password` (token in the URL fragment, read by a static script under CSP, `no-store`), reusing the API logic. Tested end to end from the email link.
+2. Flutter template defaults unsuitable for this machine and product: Gradle `-Xmx8G` (OOM risk on the 8 GB laptop) lowered; minSdk set explicitly to 26; Android backup and cleartext disabled for release.
+3. `file_picker` 13 API change (`FilePicker.pickFiles()` static, `saveFile` writes the bytes) adapted.
+
 ## 2026-10-14 — Phase 8 (security validation), branch `phase-8-security`
 | Check | Result |
 |---|---|

@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- The INTERNET permission is required for development (hot reload, debugging). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- DEBUG BUILDS ONLY: allow plain HTTP to the local dev server (http://10.0.2.2:8080).
+         Release builds keep usesCleartextTraffic=false and AppConfig requires https. -->
+    <application android:usesCleartextTraffic="true" tools:replace="android:usesCleartextTraffic" />
+</manifest>

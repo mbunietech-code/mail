@@ -1,6 +1,6 @@
 # MbunieMail — Project Status and Requirements Checklist
 
-Last updated: 2026-10-14 (end of Phase 8, branch `phase-8-security`). Legend: ✅ done and verified · 🟡 in progress or partially done · ⬜ not started · ⛔ blocked (see reason)
+Last updated: 2026-10-14 (Phase 6 in progress, branch `phase-6-app`). Legend: ✅ done and verified · 🟡 in progress or partially done · ⬜ not started · ⛔ blocked (see reason)
 
 ## Phase checklist
 | Phase | Item | Status | Notes |
@@ -31,8 +31,10 @@ Last updated: 2026-10-14 (end of Phase 8, branch `phase-8-security`). Legend: �
 | 5 Core mail | Sync engine, scheduler, unique jobs, backoff with jitter, checkpoints, threading, contacts | ✅ | IMAP IDLE and CONDSTORE not used (later optimisation) |
 | 5 Core mail | Image proxy (signed, SSRF-safe, redirect-checked) + email HTML sanitiser | ✅ | |
 | 5 Core mail | Contacts autocomplete, preferences, sync status, notification payload privacy | ✅ | Push delivery (FCM) in Phase 6 |
-| 6 Flutter | SDK installation | ⛔ | Flutter, Android SDK and JDK not installed. Approval needed |
-| 6 Flutter | App shell, auth, inbox, reader, composer, settings | ⬜ | |
+| 6 Flutter | SDK installation | ✅ | Installed by the user: Flutter 3.47.7, Android SDK 36/37, Android Studio JBR |
+| 6 Flutter | App: sign-in with MFA/enrolment/recovery codes, secure token storage, single-flight refresh, adaptive 1/2/3-pane mailbox, account switcher, folders, paginated list, star/read, search, sanitised reader with image consent, link confirmation and phishing banners, attachments, composer (reply/all/forward, Cc/Bcc, autocomplete, uploads, idempotent send), accounts (link/unlink with reauth), settings (sessions, theme, privacy), offline/provider banners, Windows shortcuts | ✅ | 15 tests; `flutter analyze` clean |
+| 6 Flutter | Encrypted offline cache, push (FCM/toasts), rich-text composer, deep links, Gmail connect UI, app lock | ⬜ | Documented in app/README.md |
+| 6 Flutter | Invitation and password-reset web pages (email links) | ✅ | Backend `/app/invite`, `/app/reset-password` |
 | 6 Flutter | Windows build | ⛔ | Requires a Windows build machine |
 | 7 Admin | Admin panel: sign-in with mandatory TOTP and enrolment, reauth for writes, employees (invite, suspend, deactivate, roles, sessions, MFA reset, mailbox enable/disable), audit (filter, CSV export, chain verify), health, policies (MFA, attachments, domains), mail servers, failed jobs | ✅ | No mail-content access anywhere |
 | 7 Admin | Break-glass request and approval workflow (FR-ADM-010, priority S) | ⬜ | Process-only for release 1; documented in INCIDENT_RESPONSE (Phase 9) |
