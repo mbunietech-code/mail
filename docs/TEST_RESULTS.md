@@ -2,6 +2,46 @@
 
 Only tests that were actually executed are recorded here.
 
+## 2026-10-14 — Phase 5 (core mail features), branch `phase-5-core-mail`
+Command: `infra/scripts/check-backend.sh` (GreenMail running)
+
+| Check | Result |
+|---|---|
+| Pint | ✅ pass |
+| PHPStan / Larastan level 6 | ✅ 0 errors (8 found and fixed) |
+| PHPUnit | ✅ **206 tests, 1421 assertions, 0 failures** |
+| SEC-T25 log canaries | ✅ pass |
+| `composer audit` | ✅ no advisories |
+| gitleaks (committable files) | ✅ no leaks |
+
+New suites: `EmailHtmlSanitizerTest` (30, including a 25-vector XSS corpus), `SyncTest` (11), `MessageApiTest` (16), `ImageProxyTest` (5), `OutboxTest` (16), `ContactsPreferencesNotificationsTest` (3), plus an `\Answered` assertion against GreenMail.
+
+### Security matrix tests added or extended
+SEC-T13 (11 message, attachment, thread, search, sync and folder routes, plus bulk and cross-account move), SEC-T16 (sanitiser corpus, contents of dangerous containers removed, end-to-end through the read API), SEC-T18 (image proxy: internal IPs, metadata, loopback, IPv6 loopback, non-standard port, `file://`, credentials in URL, redirect to internal host), SEC-T19 (unsigned, tampered, expired, unauthenticated), SEC-T22 (messages per hour, recipients per hour), SEC-T23 (From override ignored), SEC-T35/T36/T37 (upload filename, size, type mismatch, risky-extension warn and block), SEC-T38 (notification privacy), SEC-T44 (claimed message not resubmitted; double run submits once), SEC-T45 (unknown outcome not retried; resend needs explicit confirmation), SEC-T46 (idempotent replay; body mismatch gives 409).
+
+### Mutation checks
+| Deliberate defect | Detected by |
+|---|---|
+| Message lookup not scoped to owner | MessageApiTest |
+| Outbox claim not conditional on `queued` | OutboxTest (2 failures) |
+| Unknown outcome handled like a retryable error | OutboxTest |
+| Image proxy signature check bypassed | ImageProxyTest |
+| Image proxy host guard bypassed | ImageProxyTest (2 failures) |
+| Idempotency body check removed | OutboxTest |
+| Expunge detection removed | SyncTest |
+| Sanitiser drop list without `button`, `video`, `audio` or `dialog` (elements Symfony considers safe) | EmailHtmlSanitizerTest |
+| Drop list without `script`, `style`, `form`, `select`, `option` or `textarea` | *Not detected, by design:* Symfony's default action already drops these with their contents. The explicit entries are a second layer |
+
+### Defects found in this phase
+1. **Image proxy accepted loopback in dev/test:** the GreenMail loopback exception applied to every HostGuard caller. Production was unaffected (the flag is ignored there), but the proxy now refuses loopback in every environment, with a unit test.
+2. **Inline `cid:` images were dropped** because Symfony's URL sanitizer rejects `cid:`. Replaced it with a guard that keeps Symfony's checks for every other URL attribute. `withoutAttributeSanitizer()` removes by instance identity, which needed the actual instance.
+3. **"Answered" was only set in the cache**, so the next sync reverted it. It is now stored on the server (`\Answered`), verified against GreenMail.
+4. **Found in review before any test, then fixed:** a post-send failure (for example while copying to Sent) could have relabelled a delivered message `failed`, inviting a duplicate resend; and a worker crash could leave messages in `sending` forever. Both fixed: delivered stays delivered, and stale `sending` becomes `unknown`.
+5. Sanitiser test gap: dangerous-container contents were not asserted. Strengthened.
+
+### Not yet executed
+Live Hostinger (awaiting test mailboxes), real Google OAuth, queue workers under production supervisors, load and performance tests (k6), and Flutter (Phase 6).
+
 ## 2026-10-14 — Phase 4 (email provider layer)
 Environment: as Phase 3, plus GreenMail 2.1.3 fake IMAP/SMTP (TLS with a certificate from the throwaway dev CA, authentication enforced). Command: `infra/scripts/check-backend.sh`
 

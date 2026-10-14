@@ -79,4 +79,10 @@ class EmailAccount extends Model
     {
         return $this->hasMany(Folder::class);
     }
+
+    /** @return HasMany<MessageMetadata, $this> */
+    public function messages(): HasMany
+    {
+        return $this->hasMany(MessageMetadata::class);
+    }
 }

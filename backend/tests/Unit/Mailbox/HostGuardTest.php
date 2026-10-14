@@ -60,6 +60,14 @@ class HostGuardTest extends TestCase
         $this->guard(['127.0.0.1'])->resolve('localhost');
     }
 
+    public function test_untrusted_callers_never_get_the_loopback_exception(): void
+    {
+        config(['mbuniemail.providers.allow_loopback_hosts' => true]);
+
+        $this->expectException(ProviderError::class);
+        $this->guard(['127.0.0.1'])->resolve('localhost', permitDevLoopback: false);
+    }
+
     public function test_loopback_flag_is_ignored_in_production(): void
     {
         config(['mbuniemail.providers.allow_loopback_hosts' => true]);

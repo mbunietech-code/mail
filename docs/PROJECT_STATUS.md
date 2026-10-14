@@ -1,6 +1,6 @@
 # MbunieMail — Project Status and Requirements Checklist
 
-Last updated: 2026-10-14 (end of Phase 4). Legend: ✅ done and verified · 🟡 in progress or partially done · ⬜ not started · ⛔ blocked (see reason)
+Last updated: 2026-10-14 (end of Phase 5, branch `phase-5-core-mail`). Legend: ✅ done and verified · 🟡 in progress or partially done · ⬜ not started · ⛔ blocked (see reason)
 
 ## Phase checklist
 | Phase | Item | Status | Notes |
@@ -26,10 +26,11 @@ Last updated: 2026-10-14 (end of Phase 4). Legend: ✅ done and verified · 🟡
 | 4 Providers | Live Hostinger verification | ⛔ | Needs authorized test mailboxes |
 | 4 Providers | GmailProvider + OAuth (PKCE, CSRF-safe two-step completion, revoke) | ✅ (flag off) | Tested with HTTP fakes; real Google needs a Cloud project and verification |
 | 4 Providers | Account API: link, credential update, unlink, diagnostics, folders | ✅ | |
-| 5 Core mail | Folders, list, read, sanitize, flags, move, delete, search, threads | ⬜ | |
-| 5 Core mail | Outbox, idempotent send, Sent append, drafts, attachments | ⬜ | |
-| 5 Core mail | Sync scheduler, jobs, backoff, checkpoints | ⬜ | |
-| 5 Core mail | Image proxy (SSRF-safe) | ⬜ | |
+| 5 Core mail | Folders (create), list (keyset), read (sanitised), flags, move, trash/permanent delete, spam, bulk, search, threads, attachments | ✅ | Folder rename and delete not yet |
+| 5 Core mail | Outbox: idempotent send, at-most-once claim, unknown-outcome handling, Sent append, `\Answered`, drafts, uploads, rate limits, retention | ✅ | |
+| 5 Core mail | Sync engine, scheduler, unique jobs, backoff with jitter, checkpoints, threading, contacts | ✅ | IMAP IDLE and CONDSTORE not used (later optimisation) |
+| 5 Core mail | Image proxy (signed, SSRF-safe, redirect-checked) + email HTML sanitiser | ✅ | |
+| 5 Core mail | Contacts autocomplete, preferences, sync status, notification payload privacy | ✅ | Push delivery (FCM) in Phase 6 |
 | 6 Flutter | SDK installation | ⛔ | Flutter, Android SDK and JDK not installed. Approval needed |
 | 6 Flutter | App shell, auth, inbox, reader, composer, settings | ⬜ | |
 | 6 Flutter | Windows build | ⛔ | Requires a Windows build machine |

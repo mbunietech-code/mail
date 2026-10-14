@@ -179,6 +179,9 @@ class ImapSmtpGreenMailTest extends TestCase
         $this->assertSame([$uid2], array_map(fn ($m) => $m->uid, $changes->newMessages), 'only the new message');
         $this->assertTrue($changes->flagUpdates[$uid1]->seen);
         $this->assertTrue($changes->flagUpdates[$uid1]->flagged);
+
+        $inbox->setFlags(new MessageRef('INBOX', $uid1), answered: true);
+        $this->assertTrue($inbox->fetchChanges('INBOX', $cursor, 50, null, [$uid1])->flagUpdates[$uid1]->answered, '\\Answered stored on the server');
         $this->assertSame($uid2, $changes->nextCursor->lastUid);
 
         // Moving out of INBOX is detected as "no longer present" on the next pass.

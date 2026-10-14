@@ -45,7 +45,8 @@ interface MailProvider
      */
     public function fetchAttachment(MessageRef $ref, string $partId): string;
 
-    public function setFlags(MessageRef $ref, ?bool $seen = null, ?bool $flagged = null): void;
+    /** $answered maps to IMAP \\Answered; providers without it ignore the argument. */
+    public function setFlags(MessageRef $ref, ?bool $seen = null, ?bool $flagged = null, ?bool $answered = null): void;
 
     public function move(MessageRef $ref, string $toFolder): void;
 

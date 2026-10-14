@@ -10,6 +10,7 @@ Version 0.1 · 2026-10-14 · Engine: MariaDB 11.x (InnoDB, `utf8mb4_unicode_ci`)
 > - `outbox_messages.request_hash` (idempotency body check) and `outbox_attachments.user_id` (ownership before a message exists) added.
 > - `contacts` and `notification_preferences` are created in the mail-account migration.
 > - **Phase 4:** `oauth_states` gained `session_family_id`, `completion_hash` (unique), `pending_payload_enc` (encrypted tokens awaiting completion) and `completed_at` (migration `2026_10_14_000800`, expand-only, with a working `down()`).
+> - **Phase 5:** migration `2026_10_14_000900` adds `message_metadata.provider_thread_id`, `references_json` and `reply_to_json` (threading and reply headers), `sync_states.history_id` (Gmail per-folder checkpoint), and `outbox_messages.next_attempt_at`, `recipient_count` and `forward_of_metadata_id`. All are expand-only, and rollback was verified.
 
 ## 1. Principles
 - ULID primary keys (`CHAR(26)`) for every externally referenced entity, so IDs cannot be enumerated.

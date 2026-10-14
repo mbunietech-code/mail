@@ -9,6 +9,7 @@ use App\Mailbox\Data\FolderInfo;
 use App\Mailbox\Data\FolderStatus;
 use App\Mailbox\Data\MessageContent;
 use App\Mailbox\Data\MessageEnvelope;
+use App\Mailbox\Data\MessageFlags;
 use App\Mailbox\Data\MessageRef;
 use App\Mailbox\Data\OutgoingMessage;
 use App\Mailbox\Data\SearchCriteria;
@@ -137,9 +138,21 @@ class FakeProvider implements MailProvider
         return 'fake-attachment-'.$partId;
     }
 
-    public function setFlags(MessageRef $ref, ?bool $seen = null, ?bool $flagged = null): void
+    /** @var list<array{uid: int, seen: ?bool, flagged: ?bool}> */
+    public array $flagCalls = [];
+
+    public function setFlags(MessageRef $ref, ?bool $seen = null, ?bool $flagged = null, ?bool $answered = null): void
     {
         $this->guard('setFlags');
+        if ($seen !== null || $flagged !== null) {
+            $this->flagCalls[] = ['uid' => $ref->uid, 'seen' => $seen, 'flagged' => $flagged];
+        }
+
+        $env = $this->messages[$ref->folder][$ref->uid] ?? null;
+        if ($env !== null) {
+            $flags = new MessageFlags($seen ?? $env->flags->seen, $flagged ?? $env->flags->flagged, $answered ?? $env->flags->answered, $env->flags->draft);
+            $this->messages[$ref->folder][$ref->uid] = new MessageEnvelope(...[...get_object_vars($env), 'flags' => $flags]);
+        }
     }
 
     public function move(MessageRef $ref, string $toFolder): void

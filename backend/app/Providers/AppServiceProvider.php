@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Mailbox\HostGuard;
 use App\Models\Permission;
 use App\Models\PersonalAccessToken;
 use App\Models\User;
@@ -19,6 +20,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(KeyRing::class, fn () => new KeyRing((string) config('mbuniemail.credentials.kek_path')));
+        $this->app->singleton(HostGuard::class);
     }
 
     public function boot(): void
@@ -46,6 +48,9 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute($throttle['api_per_minute'])
             ->by($request->user()?->getAuthIdentifier() ?: $request->ip()));
+
+        RateLimiter::for('image-proxy', fn (Request $request) => Limit::perMinute(300)->by('img:'.($request->user()?->getAuthIdentifier() ?: $request->ip())));
+        RateLimiter::for('uploads', fn (Request $request) => Limit::perMinute(30)->by('upl:'.($request->user()?->getAuthIdentifier() ?: $request->ip())));
 
         RateLimiter::for('auth-public', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
 

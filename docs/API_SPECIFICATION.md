@@ -158,6 +158,8 @@ Errors: 422 `PROVIDER_AUTH_FAILED`, 422 `DOMAIN_NOT_ALLOWED`, 409 `ACCOUNT_ALREA
 ---
 
 ## 4. Folders
+
+> **Implemented in Phase 5** (sections 4–11): folder create; message list (keyset cursor; `sort=date_desc|date_asc|from`); read (server-sanitised HTML, `inline_images` map of `cid` to attachment id, `security` indicators including `display_name_spoof` and `reply_to_differs`); flags; move; trash and permanent delete (Trash only); spam; bulk (per-id results); thread; search; attachment download (always `application/octet-stream` unless `?inline=1` **and** the bytes sniff as PNG/JPEG/GIF/WebP); image proxy; outbox send, status and resend (resending an `unknown` message requires `{"confirm_possible_duplicate": true}`); attachment upload and delete; drafts (`GET /drafts`, `PUT|DELETE /drafts/{client ULID}`); contacts suggest; `GET|PATCH /me/preferences`; `GET /sync/status`; `POST /accounts/{id}/sync`; `PATCH /accounts/{id}` now accepts `signature_html` (sanitised). Not yet: folder rename and delete, notification preferences, device push tokens (Phase 6).
 | Method | Path | Auth | |
 |---|---|---|---|
 | GET | /accounts/{id}/folders | user | `{ data: [{ id, name, role, unread_count, total_count, selectable }] }` |

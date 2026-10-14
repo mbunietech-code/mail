@@ -9,6 +9,15 @@ use App\Http\Controllers\Api\V1\Auth\MfaController;
 use App\Http\Controllers\Api\V1\Auth\PasswordResetController;
 use App\Http\Controllers\Api\V1\Auth\ReauthController;
 use App\Http\Controllers\Api\V1\Auth\SessionController;
+use App\Http\Controllers\Api\V1\Mail\AttachmentController;
+use App\Http\Controllers\Api\V1\Mail\ContactController;
+use App\Http\Controllers\Api\V1\Mail\FolderController;
+use App\Http\Controllers\Api\V1\Mail\ImageProxyController;
+use App\Http\Controllers\Api\V1\Mail\MessageController;
+use App\Http\Controllers\Api\V1\Mail\OutboxController;
+use App\Http\Controllers\Api\V1\Mail\PreferenceController;
+use App\Http\Controllers\Api\V1\Mail\SearchController;
+use App\Http\Controllers\Api\V1\Mail\SyncController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -60,6 +69,39 @@ Route::prefix('v1')->group(function () {
                 Route::get('folders', [AccountController::class, 'folders'])->name('accounts.folders');
             });
             Route::post('accounts/gmail/complete', [GmailController::class, 'complete'])->name('accounts.gmail.complete');
+
+            // ---- Mail ----------------------------------------------------------------
+            $ulid = '[0-9A-Za-z]{26}';
+            Route::post('accounts/{id}/folders', [FolderController::class, 'store'])->where('id', $ulid)->name('folders.store');
+            Route::get('accounts/{id}/search', SearchController::class)->where('id', $ulid)->name('accounts.search');
+            Route::post('accounts/{id}/sync', [SyncController::class, 'trigger'])->where('id', $ulid)->name('accounts.sync');
+            Route::get('sync/status', [SyncController::class, 'status'])->name('sync.status');
+
+            Route::get('folders/{id}/messages', [MessageController::class, 'index'])->where('id', $ulid)->name('messages.index');
+            Route::post('messages/bulk', [MessageController::class, 'bulk'])->name('messages.bulk');
+            Route::prefix('messages/{id}')->where(['id' => $ulid])->group(function () {
+                Route::get('/', [MessageController::class, 'show'])->name('messages.show');
+                Route::patch('/', [MessageController::class, 'update'])->name('messages.update');
+                Route::delete('/', [MessageController::class, 'destroy'])->name('messages.destroy');
+                Route::post('move', [MessageController::class, 'move'])->name('messages.move');
+                Route::post('spam', [MessageController::class, 'spam'])->name('messages.spam');
+            });
+            Route::get('threads/{key}', [MessageController::class, 'thread'])->where('key', $ulid)->name('threads.show');
+            Route::get('attachments/{id}', [AttachmentController::class, 'show'])->where('id', $ulid)->name('attachments.show');
+            Route::get('image-proxy', ImageProxyController::class)->middleware('throttle:image-proxy')->name('image-proxy');
+
+            Route::post('outbox/send', [OutboxController::class, 'send'])->name('outbox.send');
+            Route::get('outbox/{id}', [OutboxController::class, 'show'])->where('id', $ulid)->name('outbox.show');
+            Route::post('outbox/{id}/resend', [OutboxController::class, 'resend'])->where('id', $ulid)->name('outbox.resend');
+            Route::post('outbox/attachments', [OutboxController::class, 'uploadAttachment'])->middleware('throttle:uploads')->name('outbox.attachments.store');
+            Route::delete('outbox/attachments/{id}', [OutboxController::class, 'deleteAttachment'])->where('id', $ulid)->name('outbox.attachments.destroy');
+            Route::get('drafts', [OutboxController::class, 'drafts'])->name('drafts.index');
+            Route::put('drafts/{id}', [OutboxController::class, 'saveDraft'])->where('id', $ulid)->name('drafts.save');
+            Route::delete('drafts/{id}', [OutboxController::class, 'deleteDraft'])->where('id', $ulid)->name('drafts.destroy');
+
+            Route::get('contacts/suggest', [ContactController::class, 'suggest'])->name('contacts.suggest');
+            Route::get('me/preferences', [PreferenceController::class, 'show'])->name('preferences.show');
+            Route::patch('me/preferences', [PreferenceController::class, 'update'])->name('preferences.update');
 
             // ---- Sensitive: require recent re-authentication ----------------------
             Route::middleware('reauth')->group(function () {

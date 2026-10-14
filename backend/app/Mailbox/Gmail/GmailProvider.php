@@ -261,7 +261,7 @@ class GmailProvider implements MailProvider
         return self::b64url((string) $data);
     }
 
-    public function setFlags(MessageRef $ref, ?bool $seen = null, ?bool $flagged = null): void
+    public function setFlags(MessageRef $ref, ?bool $seen = null, ?bool $flagged = null, ?bool $answered = null): void
     {
         $add = [];
         $remove = [];

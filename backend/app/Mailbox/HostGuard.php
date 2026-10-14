@@ -18,7 +18,12 @@ class HostGuard
         $this->resolver = $resolver ?? self::systemResolver(...);
     }
 
-    public function resolve(string $host): string
+    /**
+     * @param  bool  $permitDevLoopback  provider connections may use the local/testing
+     *                                   loopback exception (GreenMail); untrusted URLs
+     *                                   such as remote images must pass false
+     */
+    public function resolve(string $host, bool $permitDevLoopback = true): string
     {
         $host = strtolower(trim($host));
         if ($host === '' || ! preg_match('/^[a-z0-9.-]+$/', $host)) {
@@ -31,7 +36,7 @@ class HostGuard
         }
 
         foreach ($ips as $ip) {
-            if (! $this->isAllowed($ip)) {
+            if (! $this->isAllowed($ip, $permitDevLoopback)) {
                 throw ProviderError::of(ProviderErrorCode::HostNotAllowed, "{$host} resolves to a non-public address.");
             }
         }
@@ -46,9 +51,9 @@ class HostGuard
         return $ips[0];
     }
 
-    public function isAllowed(string $ip): bool
+    public function isAllowed(string $ip, bool $permitDevLoopback = true): bool
     {
-        if ($this->loopbackPermitted() && in_array($ip, ['127.0.0.1', '::1'], true)) {
+        if ($permitDevLoopback && $this->loopbackPermitted() && in_array($ip, ['127.0.0.1', '::1'], true)) {
             return true;
         }
 

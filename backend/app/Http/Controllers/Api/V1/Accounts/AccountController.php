@@ -9,6 +9,7 @@ use App\Models\EmailAccount;
 use App\Models\Folder;
 use App\Models\ProviderProfile;
 use App\Models\User;
+use App\Security\Html\EmailHtmlSanitizer;
 use App\Security\Secret;
 use App\Services\Accounts\AccountService;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +17,10 @@ use Illuminate\Http\Request;
 
 class AccountController extends Controller
 {
-    public function __construct(private readonly AccountService $accounts) {}
+    public function __construct(
+        private readonly AccountService $accounts,
+        private readonly EmailHtmlSanitizer $sanitizer,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -51,8 +55,18 @@ class AccountController extends Controller
     public function update(Request $request, string $id): JsonResponse
     {
         $account = $this->owned($request, $id);
-        $data = $request->validate(['display_name' => ['nullable', 'string', 'max:120']]);
-        $account->forceFill(['display_name' => $data['display_name'] ?? null])->save();
+        $data = $request->validate([
+            'display_name' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'signature_html' => ['sometimes', 'nullable', 'string', 'max:20000'],
+        ]);
+        if (array_key_exists('display_name', $data)) {
+            $account->display_name = $data['display_name'];
+        }
+        if (array_key_exists('signature_html', $data)) {
+            // Signatures are inserted into outgoing mail: same allow-list as composing (FR-SEND-008).
+            $account->signature_html = $data['signature_html'] === null ? null : $this->sanitizer->sanitizeOutbound($data['signature_html']);
+        }
+        $account->save();
 
         return response()->json(self::present($account));
     }
@@ -132,6 +146,7 @@ class AccountController extends Controller
             'last_synced_at' => $account->last_synced_at?->toIso8601String(),
             'last_error_code' => $account->last_error_code,
             'capabilities' => $account->capabilities ?? (object) [],
+            'signature_html' => $account->signature_html,
         ];
     }
 }

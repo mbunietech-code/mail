@@ -53,6 +53,42 @@ return [
         'state_ttl_minutes' => 10,
     ],
 
+    // Synchronisation (SRS §9, FR-SYNC-*). Only metadata is cached (SDD ADR-002).
+    'sync' => [
+        'window_days' => (int) env('MBUNIEMAIL_SYNC_WINDOW_DAYS', 30),
+        'initial_limit' => (int) env('MBUNIEMAIL_SYNC_INITIAL_LIMIT', 2000),
+        'batch_size' => 200,
+        'max_batches_per_run' => 5,
+        'inbox_interval_minutes' => 2,
+        'other_folders_interval_minutes' => 15,
+        'idle_interval_minutes' => 15,   // no client activity for 7 days
+        'dormant_interval_minutes' => 60, // no client activity for 30 days
+        'backoff_base_seconds' => 30,
+        'backoff_cap_seconds' => 1800,
+        'cache_snippets' => (bool) env('MBUNIEMAIL_CACHE_SNIPPETS', true),
+    ],
+
+    'outbox' => [
+        'max_recipients' => (int) env('MBUNIEMAIL_MAX_RECIPIENTS', 100),
+        'max_attachment_bytes' => (int) env('MBUNIEMAIL_MAX_ATTACHMENT_BYTES', 25 * 1024 * 1024),
+        'max_html_bytes' => 2 * 1024 * 1024,
+        'messages_per_hour' => (int) env('MBUNIEMAIL_SEND_PER_HOUR', 100),
+        'recipients_per_hour' => (int) env('MBUNIEMAIL_RECIPIENTS_PER_HOUR', 500),
+        'max_attempts' => 5,
+        // 'warn' flags risky attachment types; 'block' refuses them (SRS FR-SEND-003).
+        'risky_extension_policy' => env('MBUNIEMAIL_RISKY_ATTACHMENT_POLICY', 'warn'),
+        'risky_extensions' => ['exe', 'scr', 'bat', 'cmd', 'com', 'pif', 'js', 'jse', 'vbs', 'vbe', 'wsf', 'ps1', 'msi', 'msp', 'jar', 'lnk', 'hta', 'iso', 'img', 'reg', 'cpl', 'dll'],
+        'payload_retention_hours' => 24,
+        'failed_retention_days' => 7,
+    ],
+
+    'image_proxy' => [
+        'max_bytes' => 5 * 1024 * 1024,
+        'timeout_seconds' => 5,
+        'max_redirects' => 3,
+        'allowed_types' => ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+    ],
+
     'accounts' => [
         'max_per_user' => (int) env('MBUNIEMAIL_MAX_ACCOUNTS_PER_USER', 5),
         // Linking attempts per user per 10 minutes — stops the endpoint being used as a

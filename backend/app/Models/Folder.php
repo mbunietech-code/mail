@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Cached folder (IMAP mailbox / Gmail label) of an email account.
@@ -35,5 +37,17 @@ class Folder extends Model
     public function emailAccount(): BelongsTo
     {
         return $this->belongsTo(EmailAccount::class);
+    }
+
+    /** @return HasMany<MessageMetadata, $this> */
+    public function messages(): HasMany
+    {
+        return $this->hasMany(MessageMetadata::class);
+    }
+
+    /** @return HasOne<SyncState, $this> */
+    public function syncState(): HasOne
+    {
+        return $this->hasOne(SyncState::class);
     }
 }

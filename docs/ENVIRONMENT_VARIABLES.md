@@ -67,6 +67,17 @@ Changing these requires `php artisan db:seed --class=ProviderProfileSeeder` (or,
 | `MBUNIEMAIL_PROVIDER_TIMEOUT` | 20 | Seconds for IMAP/SMTP socket operations |
 | `MBUNIEMAIL_MAX_ACCOUNTS_PER_USER` | 5 | |
 
+## Sync and outbox
+| Variable | Default | Notes |
+|---|---|---|
+| `MBUNIEMAIL_SYNC_WINDOW_DAYS` | 30 | Initial sync caches metadata for this many days per folder |
+| `MBUNIEMAIL_SYNC_INITIAL_LIMIT` | 2000 | Max messages per folder on the first sync |
+| `MBUNIEMAIL_CACHE_SNIPPETS` | true | `false` removes the 200-character previews from the server cache (privacy over convenience) |
+| `MBUNIEMAIL_MAX_RECIPIENTS` | 100 | Per message (To + Cc + Bcc) |
+| `MBUNIEMAIL_MAX_ATTACHMENT_BYTES` | 26214400 | 25 MB per message; keep at or below Hostinger's limit and Nginx `client_max_body_size` |
+| `MBUNIEMAIL_SEND_PER_HOUR` / `MBUNIEMAIL_RECIPIENTS_PER_HOUR` | 100 / 500 | Per user and per account, so a stolen session cannot spam (risk R-11). Keep below Hostinger's own limits |
+| `MBUNIEMAIL_RISKY_ATTACHMENT_POLICY` | warn | `warn` flags executables and double extensions; `block` refuses them on upload |
+
 ## Gmail (feature flag, off for release 1)
 | Variable | Notes |
 |---|---|

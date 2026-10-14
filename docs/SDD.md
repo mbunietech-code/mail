@@ -343,6 +343,13 @@ Server-side `symfony/html-sanitizer` allow-list: text formatting, lists, tables,
 
 ---
 
+### 8.7 Implementation notes (Phase 5)
+- **Sync:** `SyncService` runs inside `SyncAccountJob` (unique per account, `WithoutOverlapping`). The scheduler queues due accounts every minute (`mbuniemail:sync-due`). The inbox syncs every run; other folders every 15 minutes. Intervals adapt to client activity: 2 minutes, 15 minutes, or 60 minutes for dormant accounts. Each batch's metadata and its checkpoint are committed together. Auth failures stop scheduling (`next_sync_at = NULL`) until the user updates the password.
+- **Threading:** Gmail thread id, otherwise Message-ID/In-Reply-To/References, including replies that arrive before their parent. Never by subject.
+- **Outbox:** atomic `queued→sending` claim. The post-send steps (Sent copy, `\Answered` on the original, set on the server too, and a follow-up sync) can never change a delivered message's status. `mbuniemail:prune` turns `sending` rows older than 15 minutes into `unknown` (worker crash), never back into `queued`. Payloads and attachment files are deleted 24 hours after delivery; failed and unknown ones after 7 days.
+- **Sanitizer:** `EmailHtmlSanitizer` uses Symfony's allow-list with three custom attribute sanitizers: CSS property allow-list (no `url()`), image source policy (`cid:`, small raster `data:`, remote images only through the signed proxy after consent), and a URL guard that reuses Symfony's `UrlSanitizer`. Outgoing HTML uses the same allow-list but keeps the author's own image URLs.
+- **Image proxy:** HMAC-signed URLs with a purpose-bound key derived from APP_KEY via HKDF, one-hour expiry. Every hop, redirects included, is re-checked by `HostGuard` with **no** loopback exception and pinned with `CURLOPT_RESOLVE`. The response type is sniffed (raster only, no SVG), with a 5 MB and 5 s cap.
+
 ## 9. Secret management and token storage
 
 | Secret | Storage | Protection |

@@ -483,13 +483,13 @@ class ImapSmtpProvider implements MailProvider
 
     // ---- Mutations ----------------------------------------------------------------
 
-    public function setFlags(MessageRef $ref, ?bool $seen = null, ?bool $flagged = null): void
+    public function setFlags(MessageRef $ref, ?bool $seen = null, ?bool $flagged = null, ?bool $answered = null): void
     {
         $box = $this->folder($ref->folder);
-        $this->imap('store', function () use ($box, $ref, $seen, $flagged) {
+        $this->imap('store', function () use ($box, $ref, $seen, $flagged, $answered) {
             $box->select();
             $connection = $this->mailbox()->connection();
-            foreach (['\\Seen' => $seen, '\\Flagged' => $flagged] as $flag => $value) {
+            foreach (['\\Seen' => $seen, '\\Flagged' => $flagged, '\\Answered' => $answered] as $flag => $value) {
                 if ($value !== null) {
                     $connection->store([$flag], $ref->uid, null, $value ? '+' : '-');
                 }
