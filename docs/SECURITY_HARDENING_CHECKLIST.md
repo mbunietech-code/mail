@@ -38,15 +38,16 @@ Legend: ✅ verified · ⬜ to do · ⛔ blocked · 🟡 partially
 | C7 | Workers start and process sync and send under the systemd sandbox (exposure score 1.5 offline) | ⬜ staging |
 | C8 | File permissions: `.env` 640 deploy:mbuniemail; KEK 600 mbuniemail; backups 700 | ⬜ |
 | C9 | Log rotation installed; logs contain no secrets (canary test ✅ in CI) | ⬜ |
+| C10 | Malware scanning of attachments (SEC-T21): **not implemented**. Uploads are marked `not_scanned`, executables are warned or blocked by policy, and attachments are never executed or rendered by the server. Option: ClamAV (`clamd`) on the VPS plus a scan step in `OutboxService::stageAttachment`. Needs MGT decision | ⬜ gap accepted? |
 
 ## D. TLS and HTTP
 | # | Check | Status |
 |---|---|---|
 | D1 | Valid certificate, auto-renewal timer active, expiry alert (≥14 days) | ⬜ |
-| D2 | `testssl.sh`: TLS 1.2/1.3 only, no weak ciphers, grade A (SEC-T41) | ⬜ |
-| D3 | Headers: HSTS, CSP, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy` (SEC-T40 ✅ in tests) | ⬜ prod |
+| D2 | `testssl.sh`: TLS 1.2/1.3 only, no weak ciphers, grade A (SEC-T41) | ✅ shipped Nginx config in the local stack (2026-10-14) / ⬜ prod certificate |
+| D3 | Headers: HSTS, CSP, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, COEP, `no-store` on admin/API (SEC-T40 ✅ in tests; ✅ through the real Nginx locally; ZAP baseline 0 FAIL) | ⬜ prod |
 | D4 | `nginx -t` passes with the shipped config | ✅ (dev, self-signed) |
-| D5 | Body size 30 MB, request timeouts, rate limits active | ⬜ |
+| D5 | Body size 30 MB, request timeouts, rate limits active | ✅ local stack (auth limit returns 429 after burst) / ⬜ prod |
 | D6 | No directory under `public/` shadows a route (PublicPathCollisionTest ✅) | ✅ |
 
 ## E. Mail domain (release blocker R-25)

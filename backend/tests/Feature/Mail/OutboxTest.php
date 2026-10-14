@@ -225,7 +225,7 @@ class OutboxTest extends TestCase
         $this->assertStringContainsString('Content-Type: text/plain', $raw, 'plain-text alternative generated');
     }
 
-    /** SEC-T35 / SEC-T36 / SEC-T37 */
+    /** SEC-T20 / SEC-T35 / SEC-T36 / SEC-T37 */
     public function test_attachment_uploads_are_validated(): void
     {
         $ok = $this->postJson('/api/v1/outbox/attachments', ['file' => UploadedFile::fake()->createWithContent('../../etc/report.txt', 'quarterly numbers')], $this->auth)

@@ -161,7 +161,10 @@ The scheduler runs:
 ## 10. DNS for the mail domain (release blocker R-25)
 Run `infra/scripts/check-dns.sh mt.co.tz`. The result on 2026-10-14 was **FAIL**: SPF `~all`, no DKIM found at the common selectors, DMARC `p=none`. See SECURITY_HARDENING_CHECKLIST.md §DNS for the steps.
 
-## 11. Local development on Windows
+## 11. Production-like local stack (validation)
+`infra/staging-local/up.sh` runs the **shipped** Nginx config and PHP-FPM pool in containers (on the dev MariaDB/Redis network) with `APP_ENV=production`, `APP_DEBUG=false` and secure cookies, at `https://localhost:8443` (dev-CA certificate). It's used for testssl.sh, OWASP ZAP and header checks before a real staging server exists. Local-only differences: the FPM socket mode (the nginx image runs as `nginx`, not `www-data`) and `open_basedir` paths for the official PHP image. Stop it with `docker compose -f infra/staging-local/docker-compose.yml down`.
+
+## 12. Local development on Windows
 - Install PHP 8.4 (php.new installer or `winget install PHP.PHP.8.4`) with the `openssl`, `sodium`, `intl`, `mbstring`, `pdo_mysql`, `fileinfo` and `curl` extensions enabled in `php.ini`; Composer; Git; and Docker Desktop (WSL 2 backend).
 - In PowerShell from the repository root:
   ```powershell

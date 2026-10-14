@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\OutboxAttachment;
 use App\Models\OutboxMessage;
+use App\Models\User;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -43,12 +45,30 @@ class PruneData extends Command
             $orphans++;
         }
 
+        // Deactivated employees: personal data deleted after the retention period unless
+        // a legal hold is set (SRS §10). Cascades remove accounts, credentials, cached
+        // metadata, outbox, sessions, contacts and preferences. Audit rows keep only the id.
+        $purged = 0;
+        $users = User::query()->where('status', User::STATUS_DEACTIVATED)
+            ->where('deactivated_at', '<', now()->subDays((int) config('mbuniemail.users.deactivated_retention_days')))
+            ->where(fn ($q) => $q->whereNull('legal_hold_until')->orWhere('legal_hold_until', '<', now()))
+            ->limit(100)->get();
+        foreach ($users as $user) {
+            foreach (OutboxAttachment::query()->where('user_id', $user->id)->get() as $a) {
+                Storage::disk('local')->delete($a->storage_path);
+            }
+            $id = $user->id;
+            $user->delete();
+            app(AuditLogger::class)->record('system.user.purged', 'success', null, 'user', $id);
+            $purged++;
+        }
+
         $oauth = DB::table('oauth_states')->where('expires_at', '<', now()->subHour())->delete();
         $sessions = DB::table('refresh_sessions')
             ->where(fn ($q) => $q->where('expires_at', '<', now()->subDays(30))->orWhere('revoked_at', '<', now()->subDays(30))->orWhere('rotated_at', '<', now()->subDays(30)))
             ->delete();
 
-        $this->info("stale sending→unknown: {$stale}; sent payloads purged: {$sentCount}; failed purged: {$oldCount}; orphan uploads: {$orphans}; oauth states: {$oauth}; sessions: {$sessions}");
+        $this->info("users purged: {$purged}; stale sending→unknown: {$stale}; sent payloads purged: {$sentCount}; failed purged: {$oldCount}; orphan uploads: {$orphans}; oauth states: {$oauth}; sessions: {$sessions}");
 
         return self::SUCCESS;
     }

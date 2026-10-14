@@ -50,7 +50,7 @@ class OutboxService
             return [$existing, false];
         }
 
-        $account = $user->emailAccounts()->with('providerProfile')->findOrFail($data['account_id']);
+        $account = $user->emailAccounts()->with('providerProfile')->findOrFail((string) $data['account_id']);
         if (in_array($account->status, [EmailAccount::STATUS_DISABLED, EmailAccount::STATUS_AUTH_FAILED], true)) {
             throw new ApiException('ACCOUNT_UNAVAILABLE', 422, 'This mailbox cannot send until it is reconnected.');
         }
@@ -194,7 +194,7 @@ class OutboxService
             return null;
         }
 
-        return MessageMetadata::query()->ownedBy($user)->where('email_account_id', $account->id)->find($data['reply_to_message_id'])
+        return MessageMetadata::query()->ownedBy($user)->where('email_account_id', $account->id)->find((string) $data['reply_to_message_id'])
             ?? throw new ApiException('VALIDATION_FAILED', 422, 'The referenced message was not found in this account.');
     }
 

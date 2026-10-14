@@ -44,9 +44,8 @@ class AppServiceProvider extends ServiceProvider
 
     private function configureRateLimiting(): void
     {
-        $throttle = config('mbuniemail.throttle');
-
-        RateLimiter::for('api', fn (Request $request) => Limit::perMinute($throttle['api_per_minute'])
+        // Limits are read per request (not captured at boot) so configuration changes apply.
+        RateLimiter::for('api', fn (Request $request) => Limit::perMinute((int) config('mbuniemail.throttle.api_per_minute'))
             ->by($request->user()?->getAuthIdentifier() ?: $request->ip()));
 
         RateLimiter::for('image-proxy', fn (Request $request) => Limit::perMinute(300)->by('img:'.($request->user()?->getAuthIdentifier() ?: $request->ip())));
@@ -55,7 +54,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth-public', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
 
         RateLimiter::for('password-reset', fn (Request $request) => [
-            Limit::perHour($throttle['password_reset_per_hour'])->by('pr-email:'.hash('sha256', strtolower((string) $request->input('email')))),
+            Limit::perHour((int) config('mbuniemail.throttle.password_reset_per_hour'))->by('pr-email:'.hash('sha256', strtolower((string) $request->input('email')))),
             Limit::perHour(10)->by('pr-ip:'.$request->ip()),
         ]);
     }

@@ -49,7 +49,7 @@ class SearchController extends Controller
 
         $query = $account->messages()->getQuery();
         if (! empty($data['folder_id'])) {
-            $query->where('folder_id', Folder::query()->where('email_account_id', $account->id)->findOrFail($data['folder_id'])->id);
+            $query->where('folder_id', Folder::query()->where('email_account_id', $account->id)->findOrFail((string) $data['folder_id'])->id);
         }
         if (! empty($data['from'])) {
             $query->where(fn ($q) => $q->where('from_email', 'like', '%'.self::like($data['from']).'%')->orWhere('from_name', 'like', '%'.self::like($data['from']).'%'));
@@ -78,7 +78,7 @@ class SearchController extends Controller
             RateLimiter::hit($key, 60);
 
             $folder = ! empty($data['folder_id'])
-                ? Folder::query()->findOrFail($data['folder_id'])
+                ? Folder::query()->where('email_account_id', $account->id)->findOrFail((string) $data['folder_id'])
                 : $account->folders()->where('role', 'inbox')->firstOrFail();
             $ids = $this->providerSearch($account, $folder, new SearchCriteria(
                 text: $data['q'] ?? null,

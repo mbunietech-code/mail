@@ -35,7 +35,7 @@ tables=$($MYSQL -N -B -e "SELECT table_name FROM information_schema.tables WHERE
   echo "GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO 'mbuniemail_migrate'@'${HOST}';"
   echo "GRANT SELECT, LOCK TABLES, SHOW VIEW, TRIGGER, EVENT ON \`${DB_NAME}\`.* TO 'mbuniemail_backup'@'${HOST}';"
   echo "GRANT SELECT, DELETE ON \`${DB_NAME}\`.\`audit_logs\` TO 'mbuniemail_maint'@'${HOST}';"
-  echo "GRANT SELECT ON \`${DB_NAME}\`.\`audit_chain_head\` TO 'mbuniemail_maint'@'${HOST}';"
+  echo "GRANT SELECT, UPDATE ON \`${DB_NAME}\`.\`audit_chain_head\` TO 'mbuniemail_maint'@'${HOST}';"
   echo "FLUSH PRIVILEGES;"
 } | $MYSQL
 

@@ -1,6 +1,6 @@
 # MbunieMail — Project Status and Requirements Checklist
 
-Last updated: 2026-10-14 (end of Phase 9, branch `phase-9-deploy`). Legend: ✅ done and verified · 🟡 in progress or partially done · ⬜ not started · ⛔ blocked (see reason)
+Last updated: 2026-10-14 (end of Phase 8, branch `phase-8-security`). Legend: ✅ done and verified · 🟡 in progress or partially done · ⬜ not started · ⛔ blocked (see reason)
 
 ## Phase checklist
 | Phase | Item | Status | Notes |
@@ -37,7 +37,8 @@ Last updated: 2026-10-14 (end of Phase 9, branch `phase-9-deploy`). Legend: ✅ 
 | 7 Admin | Admin panel: sign-in with mandatory TOTP and enrolment, reauth for writes, employees (invite, suspend, deactivate, roles, sessions, MFA reset, mailbox enable/disable), audit (filter, CSV export, chain verify), health, policies (MFA, attachments, domains), mail servers, failed jobs | ✅ | No mail-content access anywhere |
 | 7 Admin | Break-glass request and approval workflow (FR-ADM-010, priority S) | ⬜ | Process-only for release 1; documented in INCIDENT_RESPONSE (Phase 9) |
 | 7 Admin | Two-person approval for MFA reset | ⬜ | Deviation: a single admin with reauth plus audit for now; see risk R-24 note |
-| 8 Security | Run full security matrix, SAST, dependency audit, secret scan | ⬜ | |
+| 8 Security | Security matrix traceability, missing tests added, testssl, ZAP baseline, SQLi corpus, git-history secret scan, PHPStan L8 review | ✅ | Open: SEC-T21 malware scanning (not implemented), SEC-T42 port scan (VPS), Flutter items |
+| 8 Security | Retention: deactivated-user purge (legal hold), audit archive and prune | ✅ | Set `DB_MAINT_*` and `MBUNIEMAIL_AUDIT_MAINT_CONNECTION=audit_maint` in production |
 | 9 Deploy | ENVIRONMENT_VARIABLES.md | ✅ | |
 | 9 Deploy | DEPLOYMENT, BACKUP_AND_RESTORE, INCIDENT_RESPONSE, SECURITY_HARDENING_CHECKLIST, OPERATIONS_RUNBOOK | ✅ draft | Roles and legal timelines still to be filled in by MbuniTech |
 | 9 Deploy | Nginx, PHP-FPM, systemd (workers, scheduler, backup), logrotate, Redis, least-privilege DB grants | ✅ validated offline | Staging run required |
@@ -50,4 +51,4 @@ Last updated: 2026-10-14 (end of Phase 9, branch `phase-9-deploy`). Legend: ✅ 
 - ⬜ MGT acceptance of residual phishing risk R-10.
 - ⬜ Independent penetration test.
 - ⬜ Legal and DPO review of PDPA 2022 obligations (R-30).
-- ⬜ Restore drill DR-T01 executed.
+- 🟡 Restore drill DR-T01: ✅ dev drill; ⬜ staging drill.

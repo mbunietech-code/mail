@@ -74,11 +74,13 @@ class AuditLogger
      */
     public function verify(): ?int
     {
-        $expectedPrev = str_repeat('0', 64);
-        $expectedId = 1;
+        // Rows before the anchor were archived and pruned by mbuniemail:prune-audit.
+        $head = DB::table('audit_chain_head')->where('id', 1)->first();
+        $expectedPrev = (string) ($head->anchor_prev_hash ?? str_repeat('0', 64));
+        $expectedId = (int) ($head->anchor_id ?? 1);
         $broken = null;
 
-        AuditLog::query()->orderBy('id')->chunk(1000, function ($logs) use (&$expectedPrev, &$expectedId, &$broken) {
+        AuditLog::query()->where('id', '>=', $expectedId)->orderBy('id')->chunk(1000, function ($logs) use (&$expectedPrev, &$expectedId, &$broken) {
             foreach ($logs as $log) {
                 $row = [
                     'id' => $log->id,
@@ -108,7 +110,6 @@ class AuditLogger
         });
 
         if ($broken === null) {
-            $head = DB::table('audit_chain_head')->where('id', 1)->first();
             if ((int) $head->last_id !== $expectedId - 1 || $head->last_hash !== $expectedPrev) {
                 $broken = $expectedId; // trailing rows were removed
             }

@@ -91,6 +91,7 @@ class AccountLinkTest extends TestCase
         $this->assertTrue(AuditLog::query()->where('action', 'account.verification_failed')->exists());
     }
 
+    /** SEC-T50 */
     public function test_provider_outage_is_reported_distinctly(): void
     {
         $this->provider->failOn('verify', ProviderErrorCode::Throttled);
@@ -143,6 +144,7 @@ class AccountLinkTest extends TestCase
         $this->assertSame(1, EmailAccount::query()->count());
     }
 
+    /** SEC-T47 */
     public function test_admin_role_gives_no_access_to_employee_accounts(): void
     {
         [, $ownerAuth] = $this->userWithReauth();
@@ -179,6 +181,7 @@ class AccountLinkTest extends TestCase
             ->assertOk()->assertJsonPath('status', 'active')->assertJsonPath('last_error_code', null);
     }
 
+    /** PRIV-T01 (unlink) */
     public function test_unlinking_purges_credential_and_cached_data(): void
     {
         [, $auth] = $this->userWithReauth();

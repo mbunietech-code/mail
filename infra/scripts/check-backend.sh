@@ -42,4 +42,13 @@ else
   echo "SKIPPED: gitleaks not available"
 fi
 
+step "Secret scan (gitleaks) over the whole git history"
+if command -v gitleaks >/dev/null; then
+  gitleaks git "$ROOT" --no-banner --redact
+elif command -v docker >/dev/null; then
+  docker run --rm -v "$ROOT:/repo:ro" zricethezav/gitleaks:v8.28.0 git /repo --no-banner --redact
+else
+  echo "SKIPPED: gitleaks not available"
+fi
+
 printf '\nAll backend checks passed.\n'

@@ -373,5 +373,9 @@ class AdminPanelTest extends TestCase
         $this->assertSame(30, config('session.lifetime'));
         $this->assertStringNotContainsString('style=', $response->getContent(), 'no inline styles (CSP)');
         $this->assertStringNotContainsString('<script', $response->getContent());
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
+        $response->assertHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+        $this->assertNull(collect($response->headers->getCookies())->first(fn ($c) => $c->getName() === 'XSRF-TOKEN'), 'no JavaScript-readable CSRF cookie');
+        $this->assertTrue(collect($response->headers->getCookies())->every(fn ($c) => $c->isHttpOnly()), 'every cookie is HttpOnly');
     }
 }

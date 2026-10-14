@@ -134,7 +134,7 @@ class SyncTest extends TestCase
         $this->artisan('mbuniemail:sync-due')->expectsOutputToContain('Queued 0');
     }
 
-    /** FR-SYNC-005 */
+    /** FR-SYNC-005 / SEC-T50 */
     public function test_transient_failures_back_off_with_jitter(): void
     {
         $this->fake->failOn('listFolders', ProviderErrorCode::Unreachable);

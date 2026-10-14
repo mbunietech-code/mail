@@ -147,5 +147,12 @@ return [
 
     'audit' => [
         'retention_days' => (int) env('MBUNIEMAIL_AUDIT_RETENTION_DAYS', 730),
+        // Production: "audit_maint" (DB account with DELETE on audit_logs only).
+        'maint_connection' => env('MBUNIEMAIL_AUDIT_MAINT_CONNECTION', 'mariadb'),
+    ],
+
+    'users' => [
+        // Personal data of deactivated users is deleted after this many days unless on legal hold.
+        'deactivated_retention_days' => (int) env('MBUNIEMAIL_DEACTIVATED_RETENTION_DAYS', 30),
     ],
 ];

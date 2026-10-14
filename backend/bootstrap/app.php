@@ -6,10 +6,12 @@ use App\Http\Middleware\EnsureTokenAbility;
 use App\Http\Middleware\ForceJsonAccept;
 use App\Http\Middleware\RequireReauth;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\VerifyCsrfToken;
 use App\Support\Problem;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -23,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend(AssignRequestId::class);
         $middleware->append(SecurityHeaders::class);
         $middleware->prependToGroup('api', ForceJsonAccept::class);
+        $middleware->web(replace: [PreventRequestForgery::class => VerifyCsrfToken::class]);
 
         // Trusted reverse proxies come from config/trustedproxy.php.
 

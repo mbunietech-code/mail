@@ -107,7 +107,7 @@ class OutboxController extends Controller
 
         /** @var User $user */
         $user = $request->user();
-        $account = $user->emailAccounts()->findOrFail($data['account_id']);
+        $account = $user->emailAccounts()->findOrFail((string) $data['account_id']);
 
         $draft = OutboxMessage::query()->where('user_id', $user->id)->where('kind', 'draft')->where('idempotency_key', 'draft-'.$id)->first() ?? new OutboxMessage;
         $draft->forceFill([

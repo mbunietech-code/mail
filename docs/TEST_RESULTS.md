@@ -2,6 +2,23 @@
 
 Only tests that were actually executed are recorded here.
 
+## 2026-10-14 — Phase 8 (security validation), branch `phase-8-security`
+| Check | Result |
+|---|---|
+| `infra/scripts/check-backend.sh` | ✅ Pint · PHPStan L6 0 errors · **241 tests, 1873 assertions** · log canaries · composer audit · gitleaks (working tree **and full git history**, newly added to the gate) |
+| Security matrix traceability (TEST_PLAN §4: 55 items) | **44 by PHPUnit, 6 by scripts** (DR-T01/02, SEC-T43 `dr-drill.sh`; SEC-T25, SEC-T39 gate; SEC-T49 `check-dns.sh`). Open: SEC-T21 (not implemented), SEC-T28/29 (Flutter), SEC-T42 (needs VPS) |
+| New tests | SEC-T15 SQL-injection corpus (8 payloads × 7 parameters, no 500s, no leaks, no widening); SEC-T30 general API limiter; SEC-T47 admin API token has no content access; PRIV-T01 deactivated-user purge with legal hold; PRIV-T02 audit archive and prune (chain still verifies, tampering still detected, refuses on a broken chain) |
+| **SEC-T41 testssl.sh** against the shipped Nginx config (production-like local stack, `infra/staging-local`) | ✅ TLS 1.2/1.3 only; AEAD + forward-secrecy ciphers only; no CBC/3DES/RC4/export/NULL; HSTS 365 d; not vulnerable to Heartbleed, ROBOT, POODLE, CRIME, BREACH, SWEET32, FREAK, DROWN, LOGJAM, BEAST, LUCKY13 |
+| **OWASP ZAP baseline** (`/admin/login` + spider) | ✅ **0 FAIL, 62 PASS**. First run had 7 warnings: fixed the non-HttpOnly XSRF cookie (removed, since the panel has no JS), missing `no-store` and COEP on admin pages, and missing CORP on static files. Remaining 5 are informational or accepted (`robots.txt` caching, a redirect body, an auth form and session cookie identified) |
+| Path and rate-limit probes through the real Nginx | ✅ `.env`, `.git/`, `vendor/`, `storage/logs`, other `*.php` → 404; traversal → 400; HTTP → HTTPS 301; sign-in limit returns 429 after the burst; production errors are clean problem+json; exactly one HSTS/nosniff/CORP header per response |
+| PHPStan level 8 (exploratory) | 61 findings, all reviewed: **no exploitable defect** (relations guaranteed by FKs, validated IDs, library typing). Request IDs are now cast explicitly. Baseline stays level 6 with 0 errors |
+
+### Defects found in this phase
+1. **Retention requirements not implemented** (SRS §10): no deactivated-user purge and no audit retention. Both implemented. Audit pruning keeps the hash chain verifiable through an anchor and archives with a checksum first.
+2. **Rate limits captured at boot**, so config changes were ignored until restart. Now read per request.
+3. **Production stack findings:** the default PHP-FPM `[www]` pool in the official image; duplicate HSTS/nosniff headers; `/assets/` not inheriting HSTS; the XSRF cookie lacking HttpOnly; admin pages cacheable. All fixed and re-verified.
+4. A second folder lookup in search was not account-scoped (not exploitable: a scoped lookup on the same id runs first). Scoped now.
+
 ## 2026-10-14 — Phase 9 (deployment preparation), branch `phase-9-deploy`
 | Check | Result |
 |---|---|
