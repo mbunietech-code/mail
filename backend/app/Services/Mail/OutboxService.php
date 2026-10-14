@@ -12,6 +12,7 @@ use App\Models\OutboxMessage;
 use App\Models\User;
 use App\Security\Html\EmailHtmlSanitizer;
 use App\Services\Audit\AuditLogger;
+use App\Services\Settings;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -158,7 +159,7 @@ class OutboxService
         $detected = (new \finfo(FILEINFO_MIME_TYPE))->file($file->getRealPath()) ?: 'application/octet-stream';
         $risky = AttachmentPolicy::isRisky($filename);
 
-        if ($risky && config('mbuniemail.outbox.risky_extension_policy') === 'block') {
+        if ($risky && app(Settings::class)->get('outbox.risky_extension_policy', config('mbuniemail.outbox.risky_extension_policy')) === 'block') {
             throw new ApiException('ATTACHMENT_BLOCKED', 422, 'This file type is not allowed by company policy.');
         }
 

@@ -1,6 +1,6 @@
 # MbunieMail — Project Status and Requirements Checklist
 
-Last updated: 2026-10-14 (end of Phase 5, branch `phase-5-core-mail`). Legend: ✅ done and verified · 🟡 in progress or partially done · ⬜ not started · ⛔ blocked (see reason)
+Last updated: 2026-10-14 (end of Phase 7, branch `phase-7-admin`). Legend: ✅ done and verified · 🟡 in progress or partially done · ⬜ not started · ⛔ blocked (see reason)
 
 ## Phase checklist
 | Phase | Item | Status | Notes |
@@ -34,7 +34,9 @@ Last updated: 2026-10-14 (end of Phase 5, branch `phase-5-core-mail`). Legend: �
 | 6 Flutter | SDK installation | ⛔ | Flutter, Android SDK and JDK not installed. Approval needed |
 | 6 Flutter | App shell, auth, inbox, reader, composer, settings | ⬜ | |
 | 6 Flutter | Windows build | ⛔ | Requires a Windows build machine |
-| 7 Admin | Users, roles, MFA policy, sessions, audit, health, jobs | ⬜ | |
+| 7 Admin | Admin panel: sign-in with mandatory TOTP and enrolment, reauth for writes, employees (invite, suspend, deactivate, roles, sessions, MFA reset, mailbox enable/disable), audit (filter, CSV export, chain verify), health, policies (MFA, attachments, domains), mail servers, failed jobs | ✅ | No mail-content access anywhere |
+| 7 Admin | Break-glass request and approval workflow (FR-ADM-010, priority S) | ⬜ | Process-only for release 1; documented in INCIDENT_RESPONSE (Phase 9) |
+| 7 Admin | Two-person approval for MFA reset | ⬜ | Deviation: a single admin with reauth plus audit for now; see risk R-24 note |
 | 8 Security | Run full security matrix, SAST, dependency audit, secret scan | ⬜ | |
 | 9 Deploy | ENVIRONMENT_VARIABLES.md | ✅ | |
 | 9 Deploy | DEPLOYMENT, BACKUP, INCIDENT, HARDENING, RUNBOOK docs | ⬜ | Written alongside implementation |

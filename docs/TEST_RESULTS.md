@@ -2,6 +2,40 @@
 
 Only tests that were actually executed are recorded here.
 
+## 2026-10-14 — Phase 7 (administration panel), branch `phase-7-admin`
+Command: `infra/scripts/check-backend.sh`. Result: ✅ Pint · ✅ PHPStan L6 (0 errors) · ✅ **230 tests, 0 failures** · ✅ log canaries · ✅ composer audit · ✅ gitleaks.
+
+New suite `AdminPanelTest` (23 tests):
+- password then TOTP sign-in, with a generic refusal for employees and wrong passwords;
+- forced MFA enrolment for console-created admins; a non-admin session is thrown out;
+- session ID regenerated at each privilege step;
+- role and permission matrix (SEC-T11);
+- reauthentication for every write;
+- suspend revokes tokens (re-activation does not revive them); deactivate disables mailboxes;
+- no self-modification; the last super admin is protected; only super admins grant admin roles;
+- invitations, MFA reset;
+- **no mail content visible anywhere in the panel** (US-07);
+- audit filters, chain verification, CSV export (audited, spreadsheet formula injection neutralised);
+- policy changes take effect and are audited;
+- mail-server hosts are refused if they resolve to internal addresses;
+- failed-job payloads hidden;
+- CSRF enforced (SEC-T17, with the unit-test bypass removed);
+- strict CSP (no inline script or style), `X-Frame-Options: DENY`, SameSite=Strict, HttpOnly, 30-minute idle sessions.
+
+### Mutation checks: all 8 detected
+Admin-role check removed · MFA step skippable · reauth bypassed · role escalation allowed · self-modification allowed · CSV formula escaping removed · provider host check removed · suspend without token revocation.
+Two mutations initially **survived**. Both exposed weak tests rather than missing controls, and both tests were fixed:
+- the self-modification test happened to be blocked by the "last super admin" rule;
+- the token-revocation test was masked by the status check, and the reactivation step used a stale in-memory model.
+
+### Defects found in this phase
+1. Laravel 13 ships no plain pagination view. Added a CSP-compatible one.
+2. Company domains were read from two sources (config and the database). Unified on the database (`CompanyDomains`), so admin edits apply everywhere.
+3. A Laravel debug error page appeared in a failing test run. It confirms `APP_DEBUG=false` is mandatory in production (hardening checklist).
+4. **Found by a real-browser check, invisible to tests:** the stylesheet lived in `public/admin/`, so the web server served that directory for `GET /admin` (404) instead of the panel. The same would happen behind Nginx `try_files $uri $uri/`. Moved to `public/assets/`; `PublicPathCollisionTest` now fails if any public directory shadows a route prefix. Verified it fails with the directory present.
+
+Browser check (built-in browser, `php artisan serve`): sign-in page renders with the stylesheet under the strict CSP, no console CSP violations, `/admin` redirects to sign-in. Final count: **230 tests passing**.
+
 ## 2026-10-14 — Phase 5 (core mail features), branch `phase-5-core-mail`
 Command: `infra/scripts/check-backend.sh` (GreenMail running)
 

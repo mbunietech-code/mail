@@ -252,6 +252,8 @@ Validation: total recipients 1–100, each RFC 5322 valid and ≤ 254 characters
 Validates the state (hash lookup, unexpired, unconsumed), exchanges the code with the PKCE verifier, and checks the granted scopes. Responds with a `302` to `<APP_LINK_URL>/oauth/google#result=pending&completion=<one-time code>` on success, or `#result=error&code=<ERROR_CODE>` (`INVALID_STATE`, `ACCESS_DENIED`, `SCOPE_NOT_GRANTED`, `TOKEN_EXCHANGE_FAILED`, `PROVIDER_UNREACHABLE`). It never carries tokens or the authorisation code, and uses the URL fragment so values stay out of logs. The redirect URI must match `GOOGLE_REDIRECT_URI` exactly.
 
 ## 13. Administration (web panel, `/admin`, session + CSRF + MFA)
+
+> **Implemented in Phase 7** as server-rendered pages: `GET/POST /admin/login`, `/admin/mfa`, `/admin/mfa/enroll`, `/admin/reauth`, `POST /admin/logout`, `/admin` (health), `/admin/users[/{id}]` with POST `status|roles|sessions/revoke|mfa/reset|accounts/{account}`, `POST /admin/invitations`, `/admin/audit` (+ `export`, `POST verify`), `/admin/policies`, `/admin/providers[/{id}]`, `/admin/jobs` (+ `retry`, `forget`). Differences from the table below: MFA reset needs no second approver yet (see risk R-24); break-glass routes are not implemented (process-only); MFA policy is set on `/admin/policies` together with allowed domains and the risky-attachment policy.
 Not part of the bearer API. All writes need reauth (10 min) and are audited 🅰.
 
 | Route | Permission | Action / audit |

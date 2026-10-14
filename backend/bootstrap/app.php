@@ -26,6 +26,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Trusted reverse proxies come from config/trustedproxy.php.
 
+        // Web (admin panel) redirects; API requests always receive problem+json instead.
+        $middleware->redirectGuestsTo(fn () => route('admin.login'));
+        $middleware->redirectUsersTo(fn () => route('admin.dashboard'));
+
         $middleware->alias([
             'token' => EnsureTokenAbility::class,
             'reauth' => RequireReauth::class,

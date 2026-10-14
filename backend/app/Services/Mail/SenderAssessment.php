@@ -3,6 +3,7 @@
 namespace App\Services\Mail;
 
 use App\Models\MessageMetadata;
+use App\Support\CompanyDomains;
 
 /**
  * Phishing indicators shown in the reader (risk R-10). These are warnings, not
@@ -13,7 +14,7 @@ class SenderAssessment
     /** @return array<string, mixed> */
     public function assess(MessageMetadata $message): array
     {
-        $allowed = array_map('strtolower', config('mbuniemail.allowed_domains'));
+        $allowed = CompanyDomains::all();
         $fromDomain = self::domain($message->from_email);
         $external = $fromDomain === null || ! in_array($fromDomain, $allowed, true);
 

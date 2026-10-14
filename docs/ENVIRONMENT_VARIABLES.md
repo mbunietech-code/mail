@@ -24,7 +24,8 @@ All values are read through `config/*.php`, so they keep working after `php arti
 | `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | Redis bound to localhost with `requirepass` (dev Docker uses 6380) |
 | `QUEUE_CONNECTION` | `redis` (`database` is a dev fallback) |
 | `CACHE_STORE` | `redis`. Rate limiters and the reauth window live here |
-| `SESSION_DRIVER` / `SESSION_LIFETIME` / `SESSION_ENCRYPT` / `SESSION_SECURE_COOKIE` | Admin web sessions: `redis` / `30` / `true` / `true` |
+| `SESSION_DRIVER` / `SESSION_LIFETIME` / `SESSION_ENCRYPT` / `SESSION_SECURE_COOKIE` | Admin web sessions: `redis` / `30` (idle minutes, the default) / `true` / `true` (the default when `APP_ENV=production`; this also switches the cookie name to `__Host-mbuniemail_session`) |
+| `SESSION_SAME_SITE` | Default `strict`. Do not relax |
 
 ## Security and auth
 | Variable | Default | Notes |

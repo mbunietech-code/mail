@@ -1,7 +1,5 @@
 <?php
 
-use Illuminate\Support\Str;
-
 return [
 
     /*
@@ -32,7 +30,8 @@ return [
     |
     */
 
-    'lifetime' => (int) env('SESSION_LIFETIME', 120),
+    // Admin panel idle timeout (minutes). Short by design (SRS: 30 min).
+    'lifetime' => (int) env('SESSION_LIFETIME', 30),
 
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
 
@@ -127,9 +126,11 @@ return [
     |
     */
 
+    // "__Host-" cookies are only sent over HTTPS, without a Domain, for path "/" —
+    // browsers refuse them otherwise, so the prefix is used whenever cookies are secure.
     'cookie' => env(
         'SESSION_COOKIE',
-        Str::slug((string) env('APP_NAME', 'laravel')).'-session'
+        (env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production') ? '__Host-' : '').'mbuniemail_session'
     ),
 
     /*
@@ -169,7 +170,7 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    'secure' => (bool) env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'),
 
     /*
     |--------------------------------------------------------------------------
@@ -199,7 +200,7 @@ return [
     |
     */
 
-    'same_site' => env('SESSION_SAME_SITE', 'lax'),
+    'same_site' => env('SESSION_SAME_SITE', 'strict'),
 
     /*
     |--------------------------------------------------------------------------

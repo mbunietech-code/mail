@@ -10,6 +10,7 @@ use App\Models\MessageMetadata;
 use App\Models\User;
 use App\Services\Mail\MessageService;
 use App\Services\UserPreferences;
+use App\Support\CompanyDomains;
 use App\Support\Cursor;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -185,8 +186,6 @@ class MessageController extends Controller
     /** @return array<string, mixed> */
     public static function present(MessageMetadata $m): array
     {
-        $allowed = array_map('strtolower', config('mbuniemail.allowed_domains'));
-        $domain = strtolower(substr(strrchr((string) $m->from_email, '@') ?: '', 1));
 
         return [
             'id' => $m->id,
@@ -202,7 +201,7 @@ class MessageController extends Controller
             'is_flagged' => $m->is_flagged,
             'is_answered' => $m->is_answered,
             'has_attachments' => $m->has_attachments,
-            'is_external' => ! in_array($domain, $allowed, true),
+            'is_external' => ! CompanyDomains::contains($m->from_email),
         ];
     }
 

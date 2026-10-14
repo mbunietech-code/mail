@@ -1,7 +1,7 @@
 # MbunieMail
 
 Corporate email client for MbuniTech: Flutter (Android + Windows) and a Laravel backend that connects to Hostinger IMAP/SMTP.
-**Status:** pre-release, Phase 4 of 10 complete. See [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). Not production-ready.
+**Status:** pre-release; Phases 1–5 and 7 complete (Phase 6, the Flutter app, awaits SDK installation). See [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). Not production-ready.
 
 ## Layout
 | Path | Contents |
@@ -24,7 +24,9 @@ cd backend && cp .env.example .env && composer install && php artisan key:genera
 php artisan mbuniemail:kek-rotate                     # creates the mailbox-credential key file (chmod 600)
 php artisan migrate --seed
 php artisan mbuniemail:create-admin admin@mt.co.tz "Admin Name"   # prompts for password
-php artisan serve --port=8080
+php artisan serve --port=8080                         # admin panel: http://localhost:8080/admin
+php artisan queue:work --queue=send,sync,default      # background jobs (another terminal)
+php artisan schedule:work                             # scheduler (another terminal)
 ```
 Dev services: MariaDB `127.0.0.1:3307`, Redis `:6380`, Mailpit UI http://127.0.0.1:8025 (captures reset and invite emails), GreenMail fake IMAP/SMTP `:3143/:3993/:3025/:3465`.
 

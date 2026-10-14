@@ -239,6 +239,7 @@ Columns: **L** likelihood · **I** impact · **Inh** inherent score · **Res** r
 - **Detective:** audit chain verification job; alert on admin actions outside business hours (C).
 - **Residual:** an OS-level root operator can technically read memory or decrypt. Mitigated by separation of duties and logging, but not eliminable.
 - **Tests:** SEC-T47 admin token gets 403 on all content routes for others' resources; SEC-T48 hash-chain tamper detection.
+- **Implementation notes (Phase 7):** admin panel has no content routes (tested: subjects and snippets never appear); every admin write requires password + TOTP reauth and is audited with before/after values; self-modification and last-super-admin removal are blocked. **Deviation:** MFA reset is a single-admin action (reauth + audit), not the two-person approval stated in the API spec. Compensating control: alert on `admin.user.mfa_reset` events (Phase 9 monitoring). Break-glass is process-only in release 1.
 - **Res:** L2 I5 = **10 Medium** · **MGT**
 
 ### R-25 DNS, SPF, DKIM, DMARC, domain impersonation
