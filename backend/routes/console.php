@@ -11,3 +11,4 @@ Schedule::command('mbuniemail:sync-due')->everyMinute()->withoutOverlapping(5);
 Schedule::command('mbuniemail:prune')->hourly()->withoutOverlapping();
 Schedule::command('sanctum:prune-expired --hours=24')->daily();
 Schedule::command('mbuniemail:audit-verify')->dailyAt('03:30');
+Schedule::command('mbuniemail:security-alerts --window=10')->everyFiveMinutes()->withoutOverlapping();

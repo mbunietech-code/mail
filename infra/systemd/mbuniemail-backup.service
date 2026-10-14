@@ -1,0 +1,14 @@
+[Unit]
+Description=MbunieMail encrypted database backup
+After=mariadb.service
+
+[Service]
+Type=oneshot
+User=mbuniemail-backup
+Group=mbuniemail-backup
+ExecStart=/srv/mbuniemail/current/infra/scripts/backup.sh
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/backups/mbuniemail

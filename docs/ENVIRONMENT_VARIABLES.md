@@ -94,6 +94,13 @@ Ignored outside `local` and `testing` environments (enforced in code).
 | `MBUNIEMAIL_ALLOW_LOOPBACK_PROVIDERS` | `true` lets provider hosts resolve to 127.0.0.1 (GreenMail). Never honoured in production |
 | `GREENMAIL_PASSWORD` | Password of the fake `test1@`/`test2@mt.co.tz` GreenMail users (same as `DEV_GREENMAIL_PASSWORD` in `infra/.env`) |
 
+## Alerting
+| Variable | Default | Notes |
+|---|---|---|
+| `MBUNIEMAIL_ALERT_EMAIL` | (empty) | Security owner's address for `mbuniemail:security-alerts`. Empty means log only |
+| `MBUNIEMAIL_ALERT_LOG_CHANNEL` | stack | Log channel for `security_alert` (critical) entries; ship this to central logging |
+| `MBUNIEMAIL_ALERT_FAILED_LOGINS` | 20 | Failed sign-ins per 10 minutes that trigger an alert |
+
 ## Planned
 `FCM_*` (Android push, Phase 5/6).
 

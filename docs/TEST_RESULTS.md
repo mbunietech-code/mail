@@ -2,6 +2,27 @@
 
 Only tests that were actually executed are recorded here.
 
+## 2026-10-14 — Phase 9 (deployment preparation), branch `phase-9-deploy`
+| Check | Result |
+|---|---|
+| `infra/scripts/check-backend.sh` | ✅ Pint · PHPStan L6 0 errors · **235 tests passing** · log canaries · composer audit · gitleaks |
+| New tests | `SecurityAlertsTest` (4: quiet system, stuffing / token theft / admin-action detection, time window, one email without personal data), `ConsoleCommandsTest` (console MFA reset requires a reason and confirmation, and is audited) |
+| `nginx -t` on `infra/nginx/mbuniemail.conf` (self-signed test certificate) | ✅ syntax ok (only the expected OCSP-stapling warning for a self-signed certificate) |
+| `systemd-analyze verify` (worker, scheduler, backup units and timers) | ✅ (only "backup.sh not at its production path" on the dev host) |
+| `systemd-analyze security` (worker) | ✅ exposure **1.5** (was 4.1 before tightening) — runtime confirmation on staging still required |
+| ShellCheck (8 scripts, warning level) | ✅ clean; info notes reviewed (2 intentional) |
+| Least-privilege DB grants (`db-grants.sh`) on dev MariaDB | ✅ as `mbuniemail_app`: SELECT/INSERT on `audit_logs` and the real AuditLogger work; **UPDATE/DELETE on audit_logs, DROP and CREATE are refused** |
+| DR drill (`dr-drill.sh`) with the real `backup.sh` / `restore.sh` | ✅ **DR-T01** restore in 5 s, row counts match, audit chain intact; **DR-T02** restored credential decrypts with the escrowed KEK; no plaintext password or KEK in the dump; wrong age key, tampered file and overwrite of an existing DB refused |
+| `check-dns.sh mt.co.tz` (SEC-T49) | ❌ **FAIL, as expected and correctly reported:** SPF `~all`, DKIM not found, DMARC `p=none`. Release blocker R-25 stays open |
+
+### Defects and events in this phase
+1. **Deployment docs bug (self-review):** the KEK was to be created by the app user in a root-owned directory, which would have failed on the server. Now in `/etc/mbuniemail/keys` (owner `mbuniemail`, 0700). Storage got group-write so the deploy user can cache config.
+2. **Runbook accuracy:** the console MFA recovery used `tinker`, which bypasses the audit log. Replaced with an audited `mbuniemail:reset-mfa` command that requires a reason.
+3. **Operator error (mine):** while testing grants, a zsh word-splitting mistake printed the *dev* MariaDB root password (local container on 127.0.0.1 only) into the session output. It was rotated immediately; the old password was verified rejected. Scripts that handle secrets now run in bash with secrets passed via environment or stdin.
+
+### Not executed (needs the real VPS)
+First staging deploy, worker start under the systemd sandbox, testssl.sh, external port scan, certificate renewal, off-site upload, staging restore drill, live Hostinger tests.
+
 ## 2026-10-14 — Phase 7 (administration panel), branch `phase-7-admin`
 Command: `infra/scripts/check-backend.sh`. Result: ✅ Pint · ✅ PHPStan L6 (0 errors) · ✅ **230 tests, 0 failures** · ✅ log canaries · ✅ composer audit · ✅ gitleaks.
 

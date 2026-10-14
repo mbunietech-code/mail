@@ -37,7 +37,7 @@ return [
 
     'credentials' => [
         // Key-encryption key file for mailbox credentials. Keep it OUTSIDE the app
-        // directory and out of database backups (e.g. /etc/mbuniemail/kek.json, 0600).
+        // directory and out of database backups (e.g. /etc/mbuniemail/keys/kek.json, 0600, owned by the app user).
         'kek_path' => env('CREDENTIAL_KEK_PATH', ''),
     ],
 
@@ -137,6 +137,13 @@ return [
 
     // Deep-link / web base that password-reset and invitation links point to.
     'app_link_url' => rtrim((string) env('MBUNIEMAIL_APP_LINK_URL', 'https://localhost/app'), '/'),
+
+    // Detective controls (docs/OPERATIONS_RUNBOOK.md §3). Email goes to the security owner.
+    'alerts' => [
+        'email' => env('MBUNIEMAIL_ALERT_EMAIL', ''),
+        'log_channel' => env('MBUNIEMAIL_ALERT_LOG_CHANNEL', 'stack'),
+        'failed_login_threshold' => (int) env('MBUNIEMAIL_ALERT_FAILED_LOGINS', 20),
+    ],
 
     'audit' => [
         'retention_days' => (int) env('MBUNIEMAIL_AUDIT_RETENTION_DAYS', 730),

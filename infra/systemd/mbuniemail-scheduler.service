@@ -1,0 +1,31 @@
+[Unit]
+Description=MbunieMail scheduler tick
+After=network-online.target mariadb.service redis-server.service
+
+[Service]
+Type=oneshot
+User=mbuniemail
+Group=mbuniemail
+WorkingDirectory=/srv/mbuniemail/current/backend
+ExecStart=/usr/bin/php artisan schedule:run --no-interaction
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+CapabilityBoundingSet=
+UMask=0027
+PrivateDevices=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+# Not set: MemoryDenyWriteExecute — PHP's PCRE JIT needs executable memory.
+ReadWritePaths=/srv/mbuniemail/shared/storage
+ReadOnlyPaths=/etc/mbuniemail

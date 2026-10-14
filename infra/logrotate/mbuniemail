@@ -1,0 +1,26 @@
+# /etc/logrotate.d/mbuniemail — application logs are already daily files; this
+# compresses and prunes them, plus Nginx and PHP-FPM logs. Security logs: 90 days.
+/srv/mbuniemail/shared/storage/logs/*.log {
+    daily
+    rotate 90
+    missingok
+    notifempty
+    compress
+    delaycompress
+    su mbuniemail mbuniemail
+    create 0640 mbuniemail mbuniemail
+}
+
+/var/log/nginx/mbuniemail.*.log /var/log/php/mbuniemail-fpm.log {
+    daily
+    rotate 90
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        [ -s /run/nginx.pid ] && kill -USR1 "$(cat /run/nginx.pid)"
+        systemctl reload php8.4-fpm >/dev/null 2>&1 || true
+    endscript
+}

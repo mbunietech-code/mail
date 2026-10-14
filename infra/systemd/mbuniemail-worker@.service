@@ -1,0 +1,47 @@
+# Queue worker, one instance per queue:  systemctl enable --now mbuniemail-worker@send mbuniemail-worker@sync mbuniemail-worker@default
+[Unit]
+Description=MbunieMail queue worker (%i)
+After=network-online.target mariadb.service redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mbuniemail
+Group=mbuniemail
+WorkingDirectory=/srv/mbuniemail/current/backend
+ExecStart=/usr/bin/php artisan queue:work redis --queue=%i --sleep=2 --tries=1 --timeout=290 --max-time=3600 --memory=256
+# Exits after --max-time; systemd restarts it with the latest release (zero-downtime deploys use queue:restart).
+Restart=always
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=300
+
+# Sandboxing
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+UMask=0027
+PrivateDevices=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+# Not set: MemoryDenyWriteExecute — PHP's PCRE JIT needs executable memory.
+ReadWritePaths=/srv/mbuniemail/shared/storage
+ReadOnlyPaths=/etc/mbuniemail
+
+[Install]
+WantedBy=multi-user.target
