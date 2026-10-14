@@ -1,0 +1,55 @@
+# MbunieMail local development dependencies.
+# All ports bind to 127.0.0.1 only. Secrets come from infra/.env (gitignored; see infra/.env.example).
+name: mbuniemail-dev
+services:
+  mariadb:
+    image: mariadb:11.8
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DEV_DB_ROOT_PASSWORD:?set in infra/.env}
+      MARIADB_DATABASE: mbuniemail
+      MARIADB_USER: mbuniemail
+      MARIADB_PASSWORD: ${DEV_DB_PASSWORD:?set in infra/.env}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    ports: ["127.0.0.1:3307:3306"]
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./dev/mariadb-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "${DEV_REDIS_PASSWORD:?set in infra/.env}", "--appendonly", "no"]
+    ports: ["127.0.0.1:6380:6379"]
+
+  # Fake IMAP/SMTP server for integration tests — never a real mailbox. TLS uses a
+  # certificate from the throwaway dev CA (scripts/dev-tls.sh) so tests keep verification on.
+  greenmail:
+    image: greenmail/standalone:2.1.3
+    environment:
+      GREENMAIL_OPTS: >-
+        -Dgreenmail.setup.test.all -Dgreenmail.hostname=0.0.0.0
+        -Dgreenmail.users.login=email
+        -Dgreenmail.users=test1:${DEV_GREENMAIL_PASSWORD:?set in infra/.env}@mt.co.tz,test2:${DEV_GREENMAIL_PASSWORD}@mt.co.tz
+        -Dgreenmail.tls.keystore.file=/tls/greenmail.p12
+        -Dgreenmail.tls.keystore.password=${DEV_GREENMAIL_KEYSTORE_PASSWORD:?run scripts/dev-tls.sh}
+        -Dgreenmail.verbose=false
+    volumes:
+      - ./dev/tls:/tls:ro
+    ports:
+      - "127.0.0.1:3025:3025"   # SMTP
+      - "127.0.0.1:3143:3143"   # IMAP
+      - "127.0.0.1:3465:3465"   # SMTPS
+      - "127.0.0.1:3993:3993"   # IMAPS
+
+  # SMTP capture for app notifications (password resets, invitations) in dev.
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+
+volumes:
+  dbdata:

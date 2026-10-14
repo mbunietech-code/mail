@@ -1,0 +1,938 @@
+openapi: 3.1.0
+info:
+  title: MbunieMail API
+  version: 0.1.0
+  description: |
+    Bearer-token REST API for the MbunieMail Android and Windows clients.
+    Admin operations live in the session-authenticated web panel and are not part of this spec.
+    See API_SPECIFICATION.md for authorization rules, rate limits and audit requirements.
+servers:
+  - url: https://{apiHost}/api/v1
+    variables:
+      apiHost:
+        default: api.example.invalid
+security:
+  - bearerAuth: []
+tags:
+  - name: auth
+  - name: accounts
+  - name: folders
+  - name: messages
+  - name: outbox
+  - name: attachments
+  - name: misc
+
+paths:
+  /auth/login:
+    post:
+      operationId: postAuthLogin
+      tags: [auth]
+      security: []
+      summary: Password login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Authenticated or MFA step required
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/TokenPair'
+                  - $ref: '#/components/schemas/MfaChallenge'
+        '401': { $ref: '#/components/responses/Problem' }
+        '423': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/mfa/verify:
+    post:
+      operationId: postAuthMfaVerify
+      tags: [auth]
+      summary: Complete MFA (mfa-pending token)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code: { type: string, pattern: '^[0-9]{6}$' }
+                recovery_code: { type: string, maxLength: 32 }
+      responses:
+        '200': { description: Tokens, content: { application/json: { schema: { $ref: '#/components/schemas/TokenPair' } } } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/refresh:
+    post:
+      operationId: postAuthRefresh
+      tags: [auth]
+      security: []
+      summary: Rotate refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string, maxLength: 128 }
+      responses:
+        '200': { description: New token pair, content: { application/json: { schema: { $ref: '#/components/schemas/TokenPair' } } } }
+        '401': { $ref: '#/components/responses/Problem' }
+  /auth/logout:
+    post:
+      operationId: postAuthLogout
+      tags: [auth]
+      summary: Revoke current session
+      responses:
+        '204': { description: Logged out }
+  /auth/reauth:
+    post:
+      operationId: postAuthReauth
+      tags: [auth]
+      summary: Confirm identity for sensitive actions (10 min window)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password: { type: string, maxLength: 256 }
+                code: { type: string, pattern: '^[0-9]{6}$' }
+      responses:
+        '204': { description: Confirmed }
+        '401': { $ref: '#/components/responses/Problem' }
+  /auth/password/forgot:
+    post:
+      operationId: postAuthPasswordForgot
+      summary: Request a password reset email
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email, maxLength: 254 }
+      responses:
+        '202': { description: Always returned (no enumeration) }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/password/reset:
+    post:
+      operationId: postAuthPasswordReset
+      summary: Reset password with emailed token
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, token, password, password_confirmation]
+              properties:
+                email: { type: string, format: email }
+                token: { type: string }
+                password: { type: string, minLength: 12, maxLength: 256 }
+                password_confirmation: { type: string }
+      responses:
+        '204': { description: Password reset; all sessions revoked }
+        '422': { $ref: '#/components/responses/Problem' }
+  /auth/mfa/enroll:
+    post:
+      operationId: postAuthMfaEnroll
+      summary: Begin TOTP enrolment
+      tags: [auth]
+      responses:
+        '200':
+          description: Provisioning data (shown once)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  otpauth_uri: { type: string }
+                  secret: { type: string }
+        '403': { $ref: '#/components/responses/Problem' }
+  /auth/mfa/confirm:
+    post:
+      operationId: postAuthMfaConfirm
+      summary: Confirm TOTP enrolment
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, pattern: '^[0-9]{6}$' }
+      responses:
+        '200':
+          description: MFA enabled; recovery codes shown once
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recovery_codes: { type: array, items: { type: string }, minItems: 10, maxItems: 10 }
+                  tokens: { $ref: '#/components/schemas/TokenPair', description: Present only when completing policy-forced enrolment }
+        '422': { $ref: '#/components/responses/Problem' }
+  /auth/mfa:
+    delete:
+      tags: [auth]
+      operationId: deleteAuthMfa
+      summary: Disable MFA (reauth; refused when policy requires MFA)
+      responses:
+        '204': { description: Disabled }
+        '403': { $ref: '#/components/responses/Problem' }
+  /auth/mfa/recovery-codes:
+    post:
+      tags: [auth]
+      operationId: postAuthMfaRecoveryCodes
+      summary: Regenerate recovery codes (reauth)
+      responses:
+        '200':
+          description: New codes, shown once; previous codes invalidated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recovery_codes: { type: array, items: { type: string } }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /auth/invitations/accept:
+    post:
+      tags: [auth]
+      security: []
+      operationId: postAuthInvitationsAccept
+      summary: Accept an invitation and set a password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, name, password, password_confirmation]
+              properties:
+                token: { type: string, maxLength: 128 }
+                name: { type: string, maxLength: 120 }
+                password: { type: string, minLength: 12, maxLength: 256, writeOnly: true }
+                password_confirmation: { type: string, writeOnly: true }
+      responses:
+        '201': { description: Account created; sign in next }
+        '422': { $ref: '#/components/responses/Problem' }
+  /auth/sessions:
+    get:
+      operationId: getAuthSessions
+      summary: List active sessions
+      tags: [auth]
+      responses:
+        '200':
+          description: Active sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Session' } }
+    delete:
+      operationId: deleteAuthSessions
+      tags: [auth]
+      summary: Revoke all other sessions (reauth)
+      responses:
+        '204': { description: Revoked }
+        '403': { $ref: '#/components/responses/Problem' }
+  /auth/sessions/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    delete:
+      operationId: deleteAuthSessionsId
+      summary: Revoke one session
+      tags: [auth]
+      responses:
+        '204': { description: Revoked }
+        '404': { $ref: '#/components/responses/Problem' }
+  /me:
+    get:
+      operationId: getMe
+      summary: Current user profile
+      tags: [auth]
+      responses:
+        '200': { description: Current user, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '401': { $ref: '#/components/responses/Problem' }
+    patch:
+      tags: [auth]
+      operationId: patchMe
+      summary: Update display name (other fields ignored)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 120 }
+      responses:
+        '200': { description: Updated profile, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '422': { $ref: '#/components/responses/Problem' }
+  /me/password:
+    put:
+      tags: [auth]
+      operationId: putMePassword
+      summary: Change password (reauth; revokes other sessions)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, password, password_confirmation]
+              properties:
+                current_password: { type: string, writeOnly: true }
+                password: { type: string, minLength: 12, maxLength: 256, writeOnly: true }
+                password_confirmation: { type: string, writeOnly: true }
+      responses:
+        '204': { description: Changed }
+        '403': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+
+  /accounts:
+    get:
+      operationId: getAccounts
+      summary: List linked mail accounts
+      tags: [accounts]
+      responses:
+        '200':
+          description: Own accounts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/EmailAccount' } }
+    post:
+      operationId: postAccounts
+      tags: [accounts]
+      summary: Link an IMAP/SMTP mailbox (reauth)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email_address, password]
+              properties:
+                email_address: { type: string, format: email, maxLength: 254 }
+                password: { type: string, maxLength: 256, writeOnly: true }
+                display_name: { type: string, maxLength: 120 }
+      responses:
+        '201': { description: Linked, content: { application/json: { schema: { $ref: '#/components/schemas/EmailAccount' } } } }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '502': { $ref: '#/components/responses/Problem' }
+  /accounts/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      operationId: getAccountsId
+      summary: Get a mail account
+      tags: [accounts]
+      responses:
+        '200': { description: Account, content: { application/json: { schema: { $ref: '#/components/schemas/EmailAccount' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+    patch:
+      operationId: patchAccountsId
+      summary: Update display name or signature
+      tags: [accounts]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name: { type: string, maxLength: 120 }
+                signature_html: { type: string, maxLength: 20000 }
+      responses:
+        '200': { description: Updated }
+    delete:
+      operationId: deleteAccountsId
+      tags: [accounts]
+      summary: Unlink and purge (reauth)
+      responses:
+        '204': { description: Unlinked }
+  /accounts/{id}/credential:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    put:
+      operationId: putAccountsIdCredential
+      summary: Replace mailbox password (reauth)
+      tags: [accounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string, maxLength: 256, writeOnly: true }
+      responses:
+        '204': { description: Updated and verified }
+        '422': { $ref: '#/components/responses/Problem' }
+  /accounts/{id}/diagnostics:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      operationId: getAccountsIdDiagnostics
+      summary: Connection and sync diagnostics
+      tags: [accounts]
+      responses:
+        '200': { description: Diagnostics, content: { application/json: { schema: { $ref: '#/components/schemas/Diagnostics' } } } }
+  /accounts/{id}/sync:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      operationId: postAccountsIdSync
+      summary: Trigger a sync now
+      tags: [accounts]
+      responses:
+        '202': { description: Sync queued }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /accounts/{id}/folders:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      operationId: getAccountsIdFolders
+      summary: List folders
+      tags: [folders]
+      responses:
+        '200':
+          description: Folders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Folder' } }
+    post:
+      operationId: postAccountsIdFolders
+      summary: Create a custom folder
+      tags: [folders]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 100 }
+      responses:
+        '201': { description: Created }
+        '422': { $ref: '#/components/responses/Problem' }
+  /accounts/{id}/search:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { name: q, in: query, schema: { type: string, maxLength: 200 } }
+      - { name: from, in: query, schema: { type: string, maxLength: 200 } }
+      - { name: to, in: query, schema: { type: string, maxLength: 200 } }
+      - { name: subject, in: query, schema: { type: string, maxLength: 200 } }
+      - { name: since, in: query, schema: { type: string, format: date } }
+      - { name: before, in: query, schema: { type: string, format: date } }
+      - { name: has_attachment, in: query, schema: { type: boolean } }
+      - { name: unread, in: query, schema: { type: boolean } }
+      - { name: folder_id, in: query, schema: { type: string } }
+      - { $ref: '#/components/parameters/Limit' }
+      - { $ref: '#/components/parameters/Cursor' }
+    get:
+      operationId: getAccountsIdSearch
+      summary: Search messages
+      tags: [messages]
+      responses:
+        '200': { description: Results, content: { application/json: { schema: { $ref: '#/components/schemas/MessagePage' } } } }
+        '422': { $ref: '#/components/responses/Problem' }
+  /folders/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    patch:
+      operationId: patchFoldersId
+      summary: Rename a custom folder
+      tags: [folders]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 100 }
+      responses:
+        '200': { description: Renamed }
+    delete:
+      operationId: deleteFoldersId
+      summary: Delete an empty custom folder
+      tags: [folders]
+      responses:
+        '204': { description: Deleted }
+        '409': { $ref: '#/components/responses/Problem' }
+  /folders/{id}/messages:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { $ref: '#/components/parameters/Limit' }
+      - { $ref: '#/components/parameters/Cursor' }
+      - { name: sort, in: query, schema: { type: string, enum: [date_desc, date_asc, from], default: date_desc } }
+      - { name: unread, in: query, schema: { type: boolean } }
+      - { name: starred, in: query, schema: { type: boolean } }
+    get:
+      operationId: getFoldersIdMessages
+      summary: List messages in a folder
+      tags: [messages]
+      responses:
+        '200': { description: Page, content: { application/json: { schema: { $ref: '#/components/schemas/MessagePage' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+  /messages/{id}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { name: images, in: query, schema: { type: string, enum: [block, allow], default: block } }
+    get:
+      operationId: getMessagesId
+      summary: Read a message (sanitized)
+      tags: [messages]
+      responses:
+        '200': { description: Message, content: { application/json: { schema: { $ref: '#/components/schemas/MessageDetail' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+        '502': { $ref: '#/components/responses/Problem' }
+    patch:
+      operationId: patchMessagesId
+      summary: Set read or starred flags
+      tags: [messages]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_seen: { type: boolean }
+                is_flagged: { type: boolean }
+      responses:
+        '200': { description: Updated }
+    delete:
+      operationId: deleteMessagesId
+      summary: Trash or permanently delete
+      tags: [messages]
+      parameters:
+        - { name: permanent, in: query, schema: { type: boolean, default: false } }
+      responses:
+        '204': { description: Trashed or deleted }
+        '409': { $ref: '#/components/responses/Problem' }
+  /messages/{id}/move:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      operationId: postMessagesIdMove
+      summary: Move a message
+      tags: [messages]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [folder_id]
+              properties:
+                folder_id: { type: string }
+      responses:
+        '200': { description: Moved }
+  /messages/bulk:
+    post:
+      operationId: postMessagesBulk
+      summary: Bulk message actions
+      tags: [messages]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids, action]
+              properties:
+                ids: { type: array, items: { type: string }, maxItems: 100 }
+                action: { type: string, enum: [seen, unseen, flag, unflag, move, trash] }
+                folder_id: { type: string }
+      responses:
+        '200': { description: Result per id }
+  /threads/{thread_key}:
+    parameters:
+      - { name: thread_key, in: path, required: true, schema: { type: string } }
+      - { name: account_id, in: query, required: true, schema: { type: string } }
+    get:
+      operationId: getThreadsThreadKey
+      summary: Messages in a conversation
+      tags: [messages]
+      responses:
+        '200': { description: Thread, content: { application/json: { schema: { $ref: '#/components/schemas/MessagePage' } } } }
+  /attachments/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      operationId: getAttachmentsId
+      summary: Download an attachment
+      tags: [attachments]
+      responses:
+        '200':
+          description: Binary stream
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        '404': { $ref: '#/components/responses/Problem' }
+  /outbox/attachments:
+    post:
+      operationId: postOutboxAttachments
+      summary: Stage an attachment upload
+      tags: [attachments]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '201': { description: Staged, content: { application/json: { schema: { $ref: '#/components/schemas/StagedAttachment' } } } }
+        '413': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /outbox/send:
+    post:
+      operationId: postOutboxSend
+      summary: Queue a message for sending
+      tags: [outbox]
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, pattern: '^[A-Za-z0-9_-]{8,80}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SendRequest' }
+      responses:
+        '202': { description: Queued, content: { application/json: { schema: { $ref: '#/components/schemas/OutboxStatus' } } } }
+        '409': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /outbox/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      operationId: getOutboxId
+      summary: Outbox delivery status
+      tags: [outbox]
+      responses:
+        '200': { description: Status, content: { application/json: { schema: { $ref: '#/components/schemas/OutboxStatus' } } } }
+  /outbox/{id}/resend:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      operationId: postOutboxIdResend
+      summary: Explicitly resend failed or unknown message
+      tags: [outbox]
+      responses:
+        '202': { description: Re-queued by explicit user action }
+        '409': { $ref: '#/components/responses/Problem' }
+  /contacts/suggest:
+    get:
+      operationId: getContactsSuggest
+      summary: Recipient autocomplete
+      tags: [misc]
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 2, maxLength: 100 } }
+      responses:
+        '200':
+          description: Suggestions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, maxItems: 10, items: { $ref: '#/components/schemas/Address' } }
+  /sync/status:
+    get:
+      operationId: getSyncStatus
+      summary: Lightweight sync status for polling
+      tags: [misc]
+      responses:
+        '200': { description: Lightweight status for polling }
+  /image-proxy:
+    get:
+      operationId: getImageProxy
+      summary: Fetch a remote image through the SSRF-safe proxy
+      tags: [misc]
+      parameters:
+        - { name: u, in: query, required: true, schema: { type: string } }
+        - { name: exp, in: query, required: true, schema: { type: integer } }
+        - { name: sig, in: query, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Image bytes, content: { image/*: { schema: { type: string, format: binary } } } }
+        '403': { $ref: '#/components/responses/Problem' }
+  /accounts/gmail/complete:
+    post:
+      tags: [accounts]
+      operationId: postAccountsGmailComplete
+      summary: Redeem the one-time completion code (same session that started authorization)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [completion]
+              properties:
+                completion: { type: string, minLength: 64, maxLength: 64 }
+      responses:
+        '201': { description: Gmail account linked, content: { application/json: { schema: { $ref: '#/components/schemas/EmailAccount' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /accounts/gmail/authorize:
+    post:
+      tags: [accounts]
+      operationId: postAccountsGmailAuthorize
+      summary: Start Gmail OAuth (reauth; feature flag GMAIL_ENABLED)
+      responses:
+        '200':
+          description: Authorization URL to open in the system browser
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authorization_url: { type: string }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /oauth/google/callback:
+    get:
+      operationId: getOauthGoogleCallback
+      summary: Google OAuth redirect target
+      tags: [accounts]
+      security: []
+      parameters:
+        - { name: code, in: query, schema: { type: string } }
+        - { name: state, in: query, required: true, schema: { type: string } }
+      responses:
+        '302': { description: Redirect to app link with result only (no tokens) }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[0-9A-HJKMNP-TV-Z]{26}$' }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+    Cursor:
+      name: cursor
+      in: query
+      schema: { type: string, maxLength: 200 }
+  responses:
+    Problem:
+      description: Error (RFC 9457)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    RateLimited:
+      description: Too many requests
+      headers:
+        Retry-After: { schema: { type: integer } }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+  schemas:
+    Problem:
+      type: object
+      required: [title, status, code]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        code: { type: string }
+        detail: { type: string }
+        request_id: { type: string }
+        errors:
+          type: object
+          additionalProperties: { type: array, items: { type: string } }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, maxLength: 256, writeOnly: true }
+        device:
+          type: object
+          properties:
+            id: { type: string }
+            platform: { type: string, enum: [android, windows] }
+            name: { type: string, maxLength: 80 }
+    TokenPair:
+      type: object
+      required: [status, access_token, refresh_token]
+      properties:
+        status: { type: string, enum: [authenticated] }
+        session_id: { type: string, description: Session family id (stable across refresh rotations) }
+        access_token: { type: string }
+        access_expires_in: { type: integer }
+        refresh_token: { type: string }
+        refresh_expires_in: { type: integer }
+        user: { $ref: '#/components/schemas/User' }
+    MfaChallenge:
+      type: object
+      required: [status, mfa_token]
+      properties:
+        status: { type: string, enum: [mfa_required, mfa_enrollment_required] }
+        mfa_token: { type: string }
+        expires_in: { type: integer }
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string }
+        roles: { type: array, items: { type: string } }
+        mfa_enabled: { type: boolean }
+    Session:
+      type: object
+      properties:
+        id: { type: string }
+        device_name: { type: string }
+        platform: { type: string }
+        ip_prefix: { type: string }
+        last_seen_at: { type: string, format: date-time }
+        current: { type: boolean }
+    EmailAccount:
+      type: object
+      properties:
+        id: { type: string }
+        email_address: { type: string }
+        display_name: { type: string }
+        provider: { type: string, enum: [hostinger, gmail] }
+        status: { type: string, enum: [pending, active, syncing, auth_failed, provider_unreachable, throttled, disabled] }
+        last_synced_at: { type: [string, 'null'], format: date-time }
+        last_error_code: { type: [string, 'null'] }
+    Diagnostics:
+      type: object
+      properties:
+        status: { type: string }
+        last_synced_at: { type: [string, 'null'], format: date-time }
+        last_error_code: { type: [string, 'null'] }
+        remedy: { type: [string, 'null'] }
+        capabilities: { type: object, additionalProperties: { type: boolean } }
+    Folder:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        role: { type: string, enum: [inbox, sent, drafts, archive, trash, spam, custom] }
+        unread_count: { type: integer }
+        total_count: { type: integer }
+        selectable: { type: boolean }
+    Address:
+      type: object
+      properties:
+        name: { type: [string, 'null'] }
+        email: { type: string }
+    MessageSummary:
+      type: object
+      properties:
+        id: { type: string }
+        thread_key: { type: string }
+        from: { $ref: '#/components/schemas/Address' }
+        subject: { type: string }
+        snippet: { type: [string, 'null'] }
+        date: { type: string, format: date-time }
+        is_seen: { type: boolean }
+        is_flagged: { type: boolean }
+        has_attachments: { type: boolean }
+        is_external: { type: boolean }
+    MessagePage:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/MessageSummary' } }
+        next_cursor: { type: [string, 'null'] }
+    MessageDetail:
+      type: object
+      properties:
+        id: { type: string }
+        subject: { type: string }
+        headers:
+          type: object
+          properties:
+            from: { $ref: '#/components/schemas/Address' }
+            to: { type: array, items: { $ref: '#/components/schemas/Address' } }
+            cc: { type: array, items: { $ref: '#/components/schemas/Address' } }
+            reply_to: { type: array, items: { $ref: '#/components/schemas/Address' } }
+            date: { type: string, format: date-time }
+            message_id: { type: string }
+        body:
+          type: object
+          properties:
+            html: { type: [string, 'null'], description: Server-sanitized HTML }
+            text: { type: [string, 'null'] }
+            remote_images_blocked: { type: integer }
+            remote_images_allowed: { type: boolean }
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              filename: { type: string }
+              mime_type: { type: string }
+              size: { type: integer }
+              is_inline: { type: boolean }
+              warning: { type: [string, 'null'] }
+        security:
+          type: object
+          properties:
+            external_sender: { type: boolean }
+            lookalike_domain: { type: boolean }
+            spf: { type: [string, 'null'] }
+            dkim: { type: [string, 'null'] }
+            dmarc: { type: [string, 'null'] }
+    StagedAttachment:
+      type: object
+      properties:
+        id: { type: string }
+        filename: { type: string }
+        size: { type: integer }
+        mime_type: { type: string }
+        scan_status: { type: string, enum: [pending, clean, infected, not_scanned] }
+        warning: { type: [string, 'null'] }
+    SendRequest:
+      type: object
+      required: [account_id, to, subject]
+      properties:
+        account_id: { type: string }
+        to: { type: array, items: { type: string, format: email }, minItems: 1, maxItems: 100 }
+        cc: { type: array, items: { type: string, format: email }, maxItems: 100 }
+        bcc: { type: array, items: { type: string, format: email }, maxItems: 100 }
+        subject: { type: string, maxLength: 998 }
+        html: { type: string, maxLength: 2097152 }
+        attachment_ids: { type: array, items: { type: string }, maxItems: 20 }
+        mode: { type: string, enum: [new, reply, reply_all, forward], default: new }
+        reply_to_message_id: { type: [string, 'null'] }
+        include_original_attachments: { type: boolean, default: false }
+    OutboxStatus:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [draft, queued, sending, sent, failed, unknown] }
+        message_id: { type: string }
+        last_error_code: { type: [string, 'null'] }
