@@ -11,7 +11,6 @@ use App\Models\User;
 use App\Notifications\InvitationNotification;
 use App\Services\Audit\AuditLogger;
 use App\Services\Mail\SyncService;
-use App\Support\CompanyDomains;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\AnonymousNotifiable;
@@ -57,7 +56,7 @@ class AdminPanelTest extends TestCase
 
         $this->post('/admin/mfa', ['code' => '000000'])->assertSessionHasErrors('code');
         $this->post('/admin/mfa', ['code' => $this->totp($secret)])->assertRedirect('/admin');
-        $this->get('/admin')->assertOk()->assertSee('Service health');
+        $this->get('/admin')->assertOk()->assertSee('Service status');
 
         $this->assertTrue(AuditLog::query()->where('action', 'admin.login.success')->exists());
     }
@@ -257,7 +256,7 @@ class AdminPanelTest extends TestCase
         app(SyncService::class)->syncAccount($account->refresh(), true);
         $this->signedInAdmin(Role::SUPER_ADMIN);
 
-        $page = $this->get("/admin/users/{$employee->id}")->assertOk()->assertSee('developer@mt.co.tz')->assertSee('active');
+        $page = $this->get("/admin/users/{$employee->id}")->assertOk()->assertSee('developer@mt.co.tz')->assertSee('Active');
         $page->assertDontSee('Confidential salary review')->assertDontSee('Board approved figures')->assertDontSee('partner@example.org');
 
         foreach (['/admin', '/admin/audit', '/admin/jobs'] as $url) {
@@ -297,10 +296,9 @@ class AdminPanelTest extends TestCase
     {
         $this->signedInAdmin(Role::SUPER_ADMIN);
 
-        $this->post('/admin/policies', ['mfa_required_for_all' => 0, 'risky_extension_policy' => 'warn', 'domains' => 'not a domain!'])->assertSessionHasErrors('domains');
-        $this->post('/admin/policies', ['mfa_required_for_all' => 1, 'risky_extension_policy' => 'block', 'domains' => 'mt.co.tz, mbunitech.co.tz'])->assertSessionHas('status');
+        $this->post('/admin/policies', ['mfa_required_for_all' => 'maybe', 'risky_extension_policy' => 'warn'])->assertSessionHasErrors('mfa_required_for_all');
+        $this->post('/admin/policies', ['mfa_required_for_all' => 1, 'risky_extension_policy' => 'block'])->assertSessionHas('status');
 
-        $this->assertTrue(CompanyDomains::contains('someone@mbunitech.co.tz'));
         $this->freshRequest()->login($this->makeUser())->assertJsonPath('status', 'mfa_enrollment_required');
 
         $log = AuditLog::query()->where('action', 'admin.policy.changed')->firstOrFail();

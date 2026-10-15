@@ -218,7 +218,7 @@ class MessageController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        return Folder::query()->whereIn('email_account_id', $user->emailAccounts()->select('id'))->findOrFail($id);
+        return Folder::query()->whereIn('email_account_id', $user->usableEmailAccounts()->select('id'))->findOrFail($id);
     }
 
     private function ownedAccount(Request $request, string $id): EmailAccount
@@ -226,6 +226,6 @@ class MessageController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        return $user->emailAccounts()->findOrFail($id);
+        return $user->usableEmailAccounts()->findOrFail($id);
     }
 }

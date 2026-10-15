@@ -43,7 +43,9 @@ class _Selection extends Notifier<String?> {
 
 /// The account in use: the explicit selection, else the first linked account.
 final currentAccountProvider = Provider<MailAccount?>((ref) {
-  final accounts = ref.watch(accountsProvider).value ?? const [];
+  final accounts = (ref.watch(accountsProvider).value ?? const <MailAccount>[])
+      .where((a) => a.usable)
+      .toList();
   final selected = ref.watch(selectedAccountIdProvider);
   return accounts.where((a) => a.id == selected).firstOrNull ??
       accounts.firstOrNull;

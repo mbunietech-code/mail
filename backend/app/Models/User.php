@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Notifications\ResetPasswordNotification;
+use App\Support\CompanyDomains;
 use Database\Factories\UserFactory;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
@@ -88,9 +89,25 @@ class User extends Authenticatable implements CanResetPasswordContract
         return $this->hasMany(EmailAccount::class);
     }
 
+    /** @return HasMany<EmailAccount, $this> Linked mailboxes whose domain is currently allowed. */
+    public function usableEmailAccounts(): HasMany
+    {
+        return $this->emailAccounts()->inAllowedDomains();
+    }
+
+    /**
+     * Active status AND an email domain the organisation still allows. Removing a
+     * domain in the admin panel therefore locks its users out everywhere: sign-in,
+     * token refresh, every API request, the admin panel and background sync.
+     */
     public function isActive(): bool
     {
-        return $this->status === self::STATUS_ACTIVE;
+        return $this->status === self::STATUS_ACTIVE && $this->hasAllowedDomain();
+    }
+
+    public function hasAllowedDomain(): bool
+    {
+        return CompanyDomains::contains($this->email);
     }
 
     public function hasMfaEnabled(): bool

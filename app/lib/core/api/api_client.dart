@@ -103,6 +103,22 @@ class ApiClient {
     }
   }
 
+  /// Unauthenticated GET, e.g. the list of company domains shown on the sign-in screen.
+  Future<Map<String, dynamic>> getPublic(String path) async {
+    try {
+      final r = await _refreshDio.request<dynamic>(
+        path,
+        options: Options(
+          method: 'GET',
+          headers: {'X-Request-Id': newClientId()},
+        ),
+      );
+      return _asMap(r.data);
+    } on DioException catch (e) {
+      throw _failure(e);
+    }
+  }
+
   Future<Uint8List> getBytes(String path, {Map<String, dynamic>? query}) async {
     final data = await _send('GET', path, query: query, bytes: true);
     return data is Uint8List

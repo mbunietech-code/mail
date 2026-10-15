@@ -14,7 +14,7 @@ use Tests\TestCase;
  */
 class RouteSweepTest extends TestCase
 {
-    private const PUBLIC = ['auth.login', 'auth.refresh', 'auth.password.forgot', 'auth.password.reset', 'auth.invitations.accept', 'oauth.google.callback'];
+    private const PUBLIC = ['auth.login', 'auth.refresh', 'auth.domains', 'auth.password.forgot', 'auth.password.reset', 'auth.invitations.accept', 'oauth.google.callback'];
 
     private const MFA_VERIFY = ['auth.mfa.verify'];
 

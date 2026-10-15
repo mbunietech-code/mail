@@ -44,7 +44,7 @@ class SearchController extends Controller
 
         /** @var User $user */
         $user = $request->user();
-        $account = $user->emailAccounts()->with('providerProfile')->findOrFail($id);
+        $account = $user->usableEmailAccounts()->with('providerProfile')->findOrFail($id);
         $limit = (int) ($data['limit'] ?? 50);
 
         $query = $account->messages()->getQuery();

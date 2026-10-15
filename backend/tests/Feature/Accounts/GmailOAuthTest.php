@@ -47,7 +47,7 @@ class GmailOAuthTest extends TestCase
                 'token_type' => 'Bearer',
             ])),
             'oauth2.googleapis.com/revoke' => Http::response('', 200),
-            'gmail.googleapis.com/gmail/v1/users/me/profile' => Http::response(['emailAddress' => 'Someone@Gmail.com', 'historyId' => '100']),
+            'gmail.googleapis.com/gmail/v1/users/me/profile' => Http::response(['emailAddress' => 'Someone@MT.co.tz', 'historyId' => '100']),
             'gmail.googleapis.com/gmail/v1/users/me/labels' => Http::response(['labels' => [
                 ['id' => 'INBOX', 'name' => 'INBOX'], ['id' => 'SENT', 'name' => 'SENT'], ['id' => 'UNREAD', 'name' => 'UNREAD'],
                 ['id' => 'CATEGORY_SOCIAL', 'name' => 'CATEGORY_SOCIAL'], ['id' => 'Label_1', 'name' => 'Clients'],
@@ -127,7 +127,7 @@ class GmailOAuthTest extends TestCase
         Http::assertSent(fn (Request $r) => $r->url() === GoogleTokenManager::TOKEN_URL && $r['code_verifier'] !== null && strlen($r['code_verifier']) === 96);
 
         $this->freshRequest()->postJson('/api/v1/accounts/gmail/complete', ['completion' => $fragment['completion']], $auth)
-            ->assertCreated()->assertJsonPath('provider', 'gmail')->assertJsonPath('email_address', 'someone@gmail.com');
+            ->assertCreated()->assertJsonPath('provider', 'gmail')->assertJsonPath('email_address', 'someone@mt.co.tz');
 
         $account = EmailAccount::query()->sole();
         $this->assertSame($user->id, $account->user_id);
@@ -239,7 +239,7 @@ class GmailOAuthTest extends TestCase
 
         // A send whose fate is unknown must never be reported as a safe-to-retry failure.
         try {
-            $provider->submit(new OutgoingMessage(new Address('someone@gmail.com'), [new Address('x@example.org')], [], [], 's', null, 't', 'id@x'), "Subject: s\r\n\r\nt");
+            $provider->submit(new OutgoingMessage(new Address('someone@mt.co.tz'), [new Address('x@example.org')], [], [], 's', null, 't', 'id@x'), "Subject: s\r\n\r\nt");
             $this->fail('expected unknown outcome');
         } catch (ProviderError $e) {
             $this->assertSame(ProviderErrorCode::UnknownOutcome, $e->errorCode);

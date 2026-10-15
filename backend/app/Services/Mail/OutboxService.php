@@ -50,7 +50,7 @@ class OutboxService
             return [$existing, false];
         }
 
-        $account = $user->emailAccounts()->with('providerProfile')->findOrFail((string) $data['account_id']);
+        $account = $user->usableEmailAccounts()->with('providerProfile')->findOrFail((string) $data['account_id']);
         if (in_array($account->status, [EmailAccount::STATUS_DISABLED, EmailAccount::STATUS_AUTH_FAILED], true)) {
             throw new ApiException('ACCOUNT_UNAVAILABLE', 422, 'This mailbox cannot send until it is reconnected.');
         }

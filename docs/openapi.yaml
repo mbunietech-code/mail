@@ -82,6 +82,23 @@ paths:
       responses:
         '200': { description: New token pair, content: { application/json: { schema: { $ref: '#/components/schemas/TokenPair' } } } }
         '401': { $ref: '#/components/responses/Problem' }
+  /auth/domains:
+    get:
+      operationId: getAuthDomains
+      tags: [auth]
+      security: []
+      summary: Company email domains allowed to sign in and link mailboxes
+      responses:
+        '200':
+          description: Organisation name and domains (managed in admin → Domains)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [organization, domains]
+                properties:
+                  organization: { type: string }
+                  domains: { type: array, items: { type: string } }
   /auth/logout:
     post:
       operationId: postAuthLogout

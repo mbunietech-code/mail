@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/providers.dart';
+import '../../shared/avatar.dart';
 import '../../shared/widgets.dart';
 import '../compose/compose_screen.dart';
 import '../mailbox/mailbox_providers.dart';
@@ -36,6 +37,123 @@ class ReaderScreen extends StatelessWidget {
     appBar: AppBar(),
     body: ReaderView(messageId: messageId, popOnRemove: true),
   );
+}
+
+/// Sender block. The real address is always shown next to the display name (risk R-10).
+class _SenderHeader extends StatefulWidget {
+  const _SenderHeader({required this.message});
+  final MessageDetail message;
+
+  @override
+  State<_SenderHeader> createState() => _SenderHeaderState();
+}
+
+class _SenderHeaderState extends State<_SenderHeader> {
+  bool _details = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = widget.message;
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final local = m.date.toLocal();
+    final now = DateTime.now();
+    final when =
+        local.year == now.year &&
+            local.month == now.month &&
+            local.day == now.day
+        ? DateFormat.Hm().format(local)
+        : DateFormat.MMMd().add_Hm().format(local);
+    final recipients = [...m.to, ...m.cc].map((a) => a.display).join(', ');
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LetterAvatar(name: m.from.name ?? '', email: m.from.email),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      m.from.display,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    when,
+                    style: theme.textTheme.labelMedium?.copyWith(color: muted),
+                  ),
+                ],
+              ),
+              SelectableText(
+                m.from.email,
+                style: theme.textTheme.bodySmall?.copyWith(color: muted),
+              ),
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => setState(() => _details = !_details),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'to $recipients',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: muted,
+                        ),
+                      ),
+                    ),
+                    AnimatedRotation(
+                      turns: _details ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(Icons.expand_more, size: 18, color: muted),
+                    ),
+                  ],
+                ),
+              ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                child: !_details
+                    ? const SizedBox(width: double.infinity)
+                    : Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: SelectableText(
+                          [
+                            'From: ${m.from.display} <${m.from.email}>',
+                            'To: ${m.to.map((a) => a.email).join(', ')}',
+                            if (m.cc.isNotEmpty)
+                              'Cc: ${m.cc.map((a) => a.email).join(', ')}',
+                            'Date: ${DateFormat.yMMMEd().add_Hm().format(local)}',
+                          ].join('\n'),
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class ReaderView extends ConsumerStatefulWidget {
@@ -70,50 +188,55 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
         ),
       ),
       data: (m) => ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: _Actions(message: m, onRemoved: _removed),
+          ),
           SelectableText(
             m.subject.isEmpty ? '(no subject)' : m.subject,
-            style: Theme.of(context).textTheme.headlineSmall,
+            style: Theme.of(context).textTheme.headlineSmall
+                ?.copyWith(fontWeight: FontWeight.w500),
           ),
-          const SizedBox(height: 8),
-          _Actions(message: m, onRemoved: _removed),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           _SecurityBanner(security: m.security, from: m.from),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: CircleAvatar(
-              child: Text(
-                m.from.display.isEmpty
-                    ? '?'
-                    : m.from.display.characters.first.toUpperCase(),
-              ),
-            ),
-            title: Text(m.from.display),
-            // The real address is always shown next to the display name (risk R-10).
-            subtitle: Text(
-              '${m.from.email}\nto ${m.to.map((a) => a.display).join(', ')}${m.cc.isEmpty ? '' : '\ncc ${m.cc.map((a) => a.display).join(', ')}'}',
-            ),
-            isThreeLine: true,
-            trailing: Text(DateFormat.yMMMd().add_Hm().format(m.date)),
-          ),
+          _SenderHeader(message: m),
           if (m.remoteImagesBlocked > 0 && !m.remoteImagesAllowed)
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.image_not_supported_outlined),
-                title: Text(
-                  '${m.remoteImagesBlocked} remote image(s) blocked to protect your privacy.',
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                trailing: TextButton(
-                  onPressed: () => setState(() => _images = true),
-                  child: const Text('Load images'),
+                child: Row(
+                  children: [
+                    const Icon(Icons.image_not_supported_outlined, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '${m.remoteImagesBlocked} remote image(s) blocked to protect your privacy.',
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => setState(() => _images = true),
+                      child: const Text('Load images'),
+                    ),
+                  ],
                 ),
               ),
             ),
-          const Divider(),
+          const SizedBox(height: 20),
           _Body(message: m),
           if (m.attachments.where((a) => !a.isInline).isNotEmpty) ...[
-            const Divider(),
+            const SizedBox(height: 20),
+            Text(
+              '${m.attachments.where((a) => !a.isInline).length} attachment(s)',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -123,6 +246,32 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
               ],
             ),
           ],
+          const SizedBox(height: 28),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () =>
+                    context.push('/compose', extra: ComposeDraft.reply(m)),
+                icon: const Icon(Icons.reply),
+                label: const Text('Reply'),
+              ),
+              if (m.to.length + m.cc.length > 1)
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      context.push('/compose', extra: ComposeDraft.replyAll(m)),
+                  icon: const Icon(Icons.reply_all),
+                  label: const Text('Reply all'),
+                ),
+              OutlinedButton.icon(
+                onPressed: () =>
+                    context.push('/compose', extra: ComposeDraft.forward(m)),
+                icon: const Icon(Icons.forward),
+                label: const Text('Forward'),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -160,24 +309,6 @@ class _Actions extends ConsumerWidget {
     return Wrap(
       spacing: 4,
       children: [
-        IconButton(
-          tooltip: 'Reply',
-          icon: const Icon(Icons.reply),
-          onPressed: () =>
-              context.push('/compose', extra: ComposeDraft.reply(message)),
-        ),
-        IconButton(
-          tooltip: 'Reply all',
-          icon: const Icon(Icons.reply_all),
-          onPressed: () =>
-              context.push('/compose', extra: ComposeDraft.replyAll(message)),
-        ),
-        IconButton(
-          tooltip: 'Forward',
-          icon: const Icon(Icons.forward),
-          onPressed: () =>
-              context.push('/compose', extra: ComposeDraft.forward(message)),
-        ),
         IconButton(
           tooltip: 'Mark unread',
           icon: const Icon(Icons.mark_email_unread_outlined),
@@ -220,10 +351,14 @@ class _SecurityBanner extends StatelessWidget {
       return const SizedBox.shrink();
     }
     final danger = security.suspicious;
-    return Card(
-      color: danger ? scheme.errorContainer : scheme.secondaryContainer,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: danger ? scheme.errorContainer : scheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

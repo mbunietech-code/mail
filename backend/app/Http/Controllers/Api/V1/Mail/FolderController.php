@@ -24,7 +24,7 @@ class FolderController extends Controller
         $data = $request->validate(['name' => ['required', 'string', 'min:1', 'max:100', 'not_regex:/[\x00-\x1F\x7F*%"\\\\]/']]);
         /** @var User $user */
         $user = $request->user();
-        $account = $user->emailAccounts()->with('providerProfile', 'credential')->findOrFail($id);
+        $account = $user->usableEmailAccounts()->with('providerProfile', 'credential')->findOrFail($id);
 
         $provider = $this->providers->forAccount($account);
         try {

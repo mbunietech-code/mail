@@ -35,7 +35,11 @@ class MailAccount {
     'provider_unreachable',
     'throttled',
     'disabled',
+    'domain_not_allowed',
   }.contains(status);
+
+  /// Mail can be read and sent from this mailbox (its domain is still allowed).
+  bool get usable => status != 'domain_not_allowed';
 
   factory MailAccount.fromJson(Map<String, dynamic> j) => MailAccount(
     id: '${j['id']}',

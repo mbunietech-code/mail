@@ -100,6 +100,6 @@ class MessageMetadata extends Model
      */
     public function scopeOwnedBy(Builder $query, User $user): void
     {
-        $query->whereIn('email_account_id', $user->emailAccounts()->select('id'));
+        $query->whereIn('email_account_id', $user->usableEmailAccounts()->select('id'));
     }
 }

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AuditController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DomainController;
 use App\Http\Controllers\Admin\JobController;
 use App\Http\Controllers\Admin\PolicyController;
 use App\Http\Controllers\Admin\ProviderProfileController;
@@ -68,6 +69,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::middleware('can:policies.manage')->group(function () {
             Route::get('policies', [PolicyController::class, 'show'])->name('policies.show');
             Route::post('policies', [PolicyController::class, 'update'])->middleware(RequireAdminReauth::class)->name('policies.update');
+            Route::get('domains', [DomainController::class, 'index'])->name('domains.index');
+            Route::middleware(RequireAdminReauth::class)->group(function () {
+                $domain = '[a-z0-9.-]{3,253}';
+                Route::post('domains', [DomainController::class, 'store'])->name('domains.store');
+                Route::post('domains/{domain}/server', [DomainController::class, 'server'])->where('domain', $domain)->name('domains.server');
+                Route::post('domains/{domain}/remove', [DomainController::class, 'destroy'])->where('domain', $domain)->name('domains.destroy');
+            });
             Route::get('providers', [ProviderProfileController::class, 'index'])->name('providers.index');
             Route::post('providers/{profile}', [ProviderProfileController::class, 'update'])->middleware(RequireAdminReauth::class)->name('providers.update');
         });

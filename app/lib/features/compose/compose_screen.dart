@@ -90,6 +90,11 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   bool _uploading = false;
   bool _includeOriginalAttachments = true;
 
+  /// Sending mailbox. Replies stay on the mailbox that received the message; it is
+  /// locked after the first send attempt because the Idempotency-Key covers it.
+  String? _fromId;
+  bool _attempted = false;
+
   /// One key per composed message, reused on every retry (FR-SEND-005).
   final String _idempotencyKey = MailRepository.newIdempotencyKey();
 
@@ -169,10 +174,20 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
     }
   }
 
+  MailAccount? _from() {
+    final accounts = (ref.read(accountsProvider).value ?? const <MailAccount>[])
+        .where((a) => a.usable);
+    return accounts.where((a) => a.id == _fromId).firstOrNull ??
+        ref.read(currentAccountProvider);
+  }
+
   Future<void> _send() async {
-    final account = ref.read(currentAccountProvider);
+    final account = _from();
     if (account == null || !_form.currentState!.validate()) return;
-    setState(() => _sending = true);
+    setState(() {
+      _sending = true;
+      _attempted = true;
+    });
     final d = widget.draft;
     try {
       final r = await ref.read(mailRepositoryProvider).send({
@@ -230,16 +245,20 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
               icon: const Icon(Icons.attach_file),
               onPressed: _uploading ? null : _pickFiles,
             ),
-            IconButton(
+            IconButton.filled(
               tooltip: 'Send (Ctrl+Enter)',
               icon: _sending
                   ? const SizedBox.square(
                       dimension: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.send),
+                  : Icon(
+                      Icons.send,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
               onPressed: _sending || _uploading ? null : _send,
             ),
+            const SizedBox(width: 8),
           ],
         ),
         body: Form(
@@ -247,9 +266,10 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text(
-                'From: ${account?.email ?? '—'}',
-                style: Theme.of(context).textTheme.bodySmall,
+              _FromField(
+                value: _fromId ?? account?.id,
+                locked: _attempted || widget.draft.mode != 'new',
+                onChanged: (id) => setState(() => _fromId = id),
               ),
               const SizedBox(height: 8),
               _RecipientField(
@@ -417,4 +437,43 @@ class _RecipientFieldState extends ConsumerState<_RecipientField> {
         ),
     ],
   );
+}
+
+/// Gmail-style "From" picker across the user's linked company mailboxes.
+class _FromField extends ConsumerWidget {
+  const _FromField({
+    required this.value,
+    required this.locked,
+    required this.onChanged,
+  });
+  final String? value;
+  final bool locked;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final accounts =
+        (ref.watch(accountsProvider).value ?? const <MailAccount>[])
+            .where((a) => a.usable)
+            .toList();
+    final current = accounts.where((a) => a.id == value).firstOrNull;
+    if (accounts.length <= 1 || locked) {
+      return InputDecorator(
+        decoration: const InputDecoration(labelText: 'From'),
+        child: Text(current?.email ?? accounts.firstOrNull?.email ?? '—'),
+      );
+    }
+    return DropdownButtonFormField<String>(
+      initialValue: current?.id,
+      decoration: const InputDecoration(labelText: 'From'),
+      items: [
+        for (final a in accounts)
+          DropdownMenuItem(
+            value: a.id,
+            child: Text(a.email, overflow: TextOverflow.ellipsis),
+          ),
+      ],
+      onChanged: onChanged,
+    );
+  }
 }

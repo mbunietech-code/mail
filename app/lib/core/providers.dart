@@ -23,3 +23,21 @@ final apiClientProvider = Provider<ApiClient>(
 final mailRepositoryProvider = Provider<MailRepository>(
   (ref) => MailRepository(ref.watch(apiClientProvider)),
 );
+
+/// Company email domains (public). Only these may sign in or be linked. An empty list
+/// means "unknown" (offline): the server still enforces the rule.
+final companyDomainsProvider = FutureProvider<List<String>>((ref) async {
+  try {
+    final j = await ref.watch(apiClientProvider).getPublic('auth/domains');
+    return [for (final d in (j['domains'] as List? ?? const [])) '$d'];
+  } catch (_) {
+    return const [];
+  }
+});
+
+bool emailInDomains(String email, List<String> domains) {
+  final at = email.lastIndexOf('@');
+  return domains.isEmpty ||
+      (at > 0 &&
+          domains.contains(email.substring(at + 1).trim().toLowerCase()));
+}

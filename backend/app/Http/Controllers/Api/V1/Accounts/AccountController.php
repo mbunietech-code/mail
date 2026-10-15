@@ -142,7 +142,9 @@ class AccountController extends Controller
             'email_address' => $account->email_address,
             'display_name' => $account->display_name,
             'provider' => $account->providerProfile->key,
-            'status' => $account->status,
+            // A mailbox on a domain the administrator removed stays listed (so it can be
+            // unlinked) but cannot be read, synced or sent from.
+            'status' => $account->hasAllowedDomain() ? $account->status : 'domain_not_allowed',
             'last_synced_at' => $account->last_synced_at?->toIso8601String(),
             'last_error_code' => $account->last_error_code,
             'capabilities' => $account->capabilities ?? (object) [],

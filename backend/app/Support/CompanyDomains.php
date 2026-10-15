@@ -26,9 +26,23 @@ final class CompanyDomains
 
     public static function contains(?string $email): bool
     {
-        $at = $email === null ? false : strrpos($email, '@');
+        $domain = self::domainOf($email);
 
-        return $at !== false && in_array(strtolower(substr((string) $email, $at + 1)), self::all(), true);
+        return $domain !== null && in_array($domain, self::all(), true);
+    }
+
+    public static function domainOf(?string $email): ?string
+    {
+        $at = $email === null ? false : strrpos($email, '@');
+        $domain = $at === false ? '' : strtolower(substr((string) $email, $at + 1));
+
+        return $domain === '' ? null : $domain;
+    }
+
+    /** Human-readable list for messages: "@mt.co.tz, @mbuniehub.com". */
+    public static function display(): string
+    {
+        return implode(', ', array_map(fn (string $d) => '@'.$d, self::all()));
     }
 
     public static function forget(): void

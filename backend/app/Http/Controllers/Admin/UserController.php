@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\Admin\UserAdminService;
 use App\Services\Auth\InvitationService;
+use App\Support\CompanyDomains;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -26,15 +27,16 @@ class UserController extends Controller
 
     public function index(Request $request): View
     {
-        $data = $request->validate(['q' => ['nullable', 'string', 'max:100'], 'status' => ['nullable', 'in:active,suspended,deactivated,invited']]);
+        $data = $request->validate(['q' => ['nullable', 'string', 'max:100'], 'status' => ['nullable', 'in:active,suspended,deactivated,invited'], 'domain' => ['nullable', 'string', 'max:253']]);
         $like = '%'.addcslashes(strtolower((string) ($data['q'] ?? '')), '\\%_').'%';
 
         $users = User::query()->with('roles')
             ->when($data['q'] ?? null, fn ($q) => $q->where(fn ($q) => $q->whereRaw('LOWER(email) LIKE ?', [$like])->orWhereRaw('LOWER(name) LIKE ?', [$like])))
             ->when($data['status'] ?? null, fn ($q, $s) => $q->where('status', $s))
+            ->when($data['domain'] ?? null, fn ($q, $d) => $q->where('email_domain', strtolower($d)))
             ->orderBy('name')->paginate(50)->withQueryString();
 
-        return view('admin.users.index', ['users' => $users, 'roles' => Role::query()->orderBy('name')->get(), 'filters' => $data]);
+        return view('admin.users.index', ['users' => $users, 'roles' => Role::query()->orderBy('name')->get(), 'filters' => $data, 'domains' => CompanyDomains::all()]);
     }
 
     public function show(User $user): View

@@ -65,7 +65,11 @@ final routerProvider = Provider<GoRouter>((ref) {
               : const ComposeDraft(),
         ),
       ),
-      GoRoute(path: '/accounts', builder: (_, _) => const AccountsScreen()),
+      GoRoute(
+        path: '/accounts',
+        builder: (_, s) =>
+            AccountsScreen(openLink: s.uri.queryParameters['add'] == '1'),
+      ),
       GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
     ],
   );

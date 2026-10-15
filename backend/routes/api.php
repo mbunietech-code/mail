@@ -32,6 +32,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware('throttle:auth-public')->group(function () {
         Route::post('auth/login', [LoginController::class, 'login'])->name('auth.login');
         Route::post('auth/refresh', [LoginController::class, 'refresh'])->name('auth.refresh');
+        Route::get('auth/domains', [LoginController::class, 'domains'])->name('auth.domains');
         Route::post('auth/password/forgot', [PasswordResetController::class, 'forgot'])
             ->middleware('throttle:password-reset')->name('auth.password.forgot');
         Route::post('auth/password/reset', [PasswordResetController::class, 'reset'])->name('auth.password.reset');

@@ -18,7 +18,7 @@ class SyncController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $account = $user->emailAccounts()->findOrFail($id);
+        $account = $user->usableEmailAccounts()->findOrFail($id);
 
         $key = 'sync-refresh:'.$account->id;
         if (RateLimiter::tooManyAttempts($key, 6)) {
@@ -38,7 +38,7 @@ class SyncController extends Controller
         $user = $request->user();
 
         return response()->json([
-            'accounts' => $user->emailAccounts()->with(['folders' => fn ($q) => $q->where('role', 'inbox')])->get()->map(fn (EmailAccount $a) => [
+            'accounts' => $user->usableEmailAccounts()->with(['folders' => fn ($q) => $q->where('role', 'inbox')])->get()->map(fn (EmailAccount $a) => [
                 'id' => $a->id,
                 'status' => $a->status,
                 'last_error_code' => $a->last_error_code,

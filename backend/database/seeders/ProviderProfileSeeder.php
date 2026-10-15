@@ -35,7 +35,6 @@ class ProviderProfileSeeder extends Seeder
             'smtp_encryption' => $cfg['smtp_encryption'],
             'saves_sent_automatically' => $cfg['saves_sent_automatically'],
             'max_connections_per_mailbox' => 2,
-            'domains' => json_encode(config('mbuniemail.allowed_domains')),
             'enabled' => true,
             'updated_at' => now(),
         ];
@@ -43,7 +42,8 @@ class ProviderProfileSeeder extends Seeder
         if (DB::table('provider_profiles')->where('key', 'hostinger')->exists()) {
             DB::table('provider_profiles')->where('key', 'hostinger')->update($values);
         } else {
-            DB::table('provider_profiles')->insert($values + ['id' => (string) Str::ulid(), 'key' => 'hostinger', 'created_at' => now()]);
+            // Domains are seeded once; afterwards administrators manage them (admin → Domains).
+            DB::table('provider_profiles')->insert($values + ['id' => (string) Str::ulid(), 'key' => 'hostinger', 'domains' => json_encode(config('mbuniemail.allowed_domains')), 'created_at' => now()]);
         }
     }
 

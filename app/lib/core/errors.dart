@@ -42,7 +42,8 @@ class AppFailure implements Exception {
     'PROVIDER_THROTTLED' => 'The mail provider is busy. Try again shortly.',
     'PROVIDER_TIMEOUT' => 'The mail server did not respond in time.',
     'PROVIDER_TLS_ERROR' => 'A secure connection to the mail server could not be verified. Contact IT.',
-    'DOMAIN_NOT_ALLOWED' => 'Only company mailboxes can be linked.',
+    'DOMAIN_NOT_ALLOWED' =>
+      'Use your company email address. Other domains are not allowed.',
     'ACCOUNT_ALREADY_LINKED' => 'This mailbox is already linked.',
     'IDEMPOTENCY_MISMATCH' =>
       'This message was already submitted with different content.',

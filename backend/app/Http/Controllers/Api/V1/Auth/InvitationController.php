@@ -8,6 +8,7 @@ use App\Models\Invitation;
 use App\Models\Organization;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
+use App\Support\CompanyDomains;
 use App\Support\Passwords;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,9 @@ class InvitationController extends Controller
         $invitation = Invitation::query()->where('token_hash', hash('sha256', (string) $request->input('token')))->first();
         if ($invitation === null || ! $invitation->isPending()) {
             throw new ApiException('INVITATION_INVALID', 422, 'This invitation is invalid or has expired.');
+        }
+        if (! CompanyDomains::contains($invitation->email)) {
+            throw ApiException::forbidden('DOMAIN_NOT_ALLOWED', 'This email domain is no longer allowed. Contact your administrator.');
         }
 
         $data = $request->validate([

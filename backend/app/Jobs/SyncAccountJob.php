@@ -44,7 +44,7 @@ class SyncAccountJob implements ShouldBeUnique, ShouldQueue
     public function handle(SyncService $sync): void
     {
         $account = EmailAccount::query()->with('providerProfile')->find($this->accountId);
-        if ($account === null || ! $account->user?->isActive()) {
+        if ($account === null || ! $account->hasAllowedDomain() || ! $account->user?->isActive()) {
             return;
         }
 

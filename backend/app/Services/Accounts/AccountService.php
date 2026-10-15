@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Security\CredentialVault;
 use App\Security\Secret;
 use App\Services\Audit\AuditLogger;
+use App\Support\CompanyDomains;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -37,7 +38,7 @@ class AccountService
         $org = $user->organization;
 
         if (! $org->allowsEmail($email)) {
-            throw new ApiException('DOMAIN_NOT_ALLOWED', 422, 'Only company mailboxes can be linked.');
+            throw new ApiException('DOMAIN_NOT_ALLOWED', 422, 'Only company mailboxes can be linked ('.CompanyDomains::display().').');
         }
         $profile = ProviderProfile::forEmailDomain($email)
             ?? throw new ApiException('PROVIDER_NOT_CONFIGURED', 422, 'No mail server is configured for this domain. Contact IT.');

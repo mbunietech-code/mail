@@ -256,6 +256,39 @@ void main() {
     },
   );
 
+  testWidgets('sign-in only accepts company domains, shown as chips', (
+    tester,
+  ) async {
+    http.on(
+      'GET',
+      'auth/domains',
+      (r) => FakeReply(200, {
+        'domains': ['mt.co.tz', 'mbuniehub.com', 'mbunir.tech'],
+      }),
+    );
+    http.on('POST', 'auth/login', (r) => FakeReply(500));
+    await pumpApp(tester);
+
+    expect(find.text('@mbuniehub.com'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Work email'),
+      'someone@gmail.com',
+    );
+    await tester.enterText(find.widgetWithText(TextFormField, 'Password'), 'x');
+    await tester.tap(find.text('Sign in'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Use your company email'), findsOneWidget);
+    expect(http.requests.where((r) => r.path.endsWith('auth/login')), isEmpty);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Work email'),
+      'someone',
+    );
+    await tester.tap(find.text('@mbunir.tech'));
+    await tester.pumpAndSettle();
+    expect(find.text('someone@mbunir.tech'), findsOneWidget);
+  });
+
   group('signed in', () {
     setUp(() => store.value = session());
 
@@ -426,5 +459,78 @@ void main() {
       expect(store.value, isNull);
       expect(find.text('Sign in'), findsOneWidget);
     });
+
+    testWidgets(
+      'account switcher: switch mailbox like Gmail; removed domains are skipped',
+      (tester) async {
+        mailRoutes();
+        final hub = {
+          'id': 'A2',
+          'email_address': 'amina@mbuniehub.com',
+          'status': 'active',
+          'provider': 'hostinger',
+        };
+        final gone = {
+          'id': 'A3',
+          'email_address': 'old@retired.example',
+          'status': 'domain_not_allowed',
+          'provider': 'hostinger',
+        };
+        http.on(
+          'GET',
+          'accounts',
+          (r) => FakeReply(200, {
+            'data': [gone, account, hub],
+          }),
+        );
+        http.on(
+          'GET',
+          'accounts/A2/folders',
+          (r) => FakeReply(200, {
+            'data': [
+              {...inbox, 'id': 'F2', 'unread_count': 4},
+            ],
+          }),
+        );
+        http.on(
+          'GET',
+          'folders/F2/messages',
+          (r) => FakeReply(200, {
+            'data': [
+              {
+                ...summary('M9', 'Hub launch plan'),
+                'account_id': 'A2',
+                'folder_id': 'F2',
+              },
+            ],
+            'next_cursor': null,
+          }),
+        );
+        await pumpApp(tester);
+
+        // The mailbox on a removed domain is never the one in use.
+        expect(find.text('Quarterly plan'), findsOneWidget);
+
+        await tester.tap(find.byTooltip('Switch account'));
+        await tester.pumpAndSettle();
+        expect(find.text('developer@mt.co.tz'), findsWidgets);
+        expect(find.text('Domain no longer allowed'), findsOneWidget);
+        expect(find.text('Add another account'), findsOneWidget);
+
+        await tester.tap(find.text('amina@mbuniehub.com'));
+        await tester.pumpAndSettle();
+        expect(find.text('Hub launch plan'), findsOneWidget);
+        expect(find.text('Quarterly plan'), findsNothing);
+
+        // Compose sends from the mailbox in use, and can pick another one.
+        await tester.tap(find.text('Compose'));
+        await tester.pumpAndSettle();
+        expect(find.text('amina@mbuniehub.com'), findsOneWidget);
+        await tester.tap(find.text('amina@mbuniehub.com'));
+        await tester.pumpAndSettle();
+        expect(find.text('developer@mt.co.tz'), findsWidgets);
+        expect(find.text('old@retired.example'), findsNothing);
+      },
+    );
   });
 }

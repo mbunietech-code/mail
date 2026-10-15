@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\CompanyDomains;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -30,8 +31,8 @@ class Organization extends Model
 
     public function allowsEmail(string $email): bool
     {
-        $domain = strtolower(substr(strrchr($email, '@') ?: '', 1));
+        $domain = CompanyDomains::domainOf($email);
 
-        return $domain !== '' && in_array($domain, array_map('strtolower', $this->allowed_domains), true);
+        return $domain !== null && in_array($domain, array_map('strtolower', $this->allowed_domains), true);
     }
 }

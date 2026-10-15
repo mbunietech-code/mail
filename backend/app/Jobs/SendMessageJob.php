@@ -58,6 +58,13 @@ class SendMessageJob implements ShouldQueue
 
         $message = OutboxMessage::query()->with('emailAccount.providerProfile', 'emailAccount.user')->findOrFail($this->outboxId);
         $account = $message->emailAccount;
+        if (! $account->hasAllowedDomain() || ! $account->user->isActive()) {
+            // Domain removed (or user deactivated) after the message was queued: never send.
+            $message->forceFill(['status' => OutboxMessage::STATUS_FAILED, 'last_error_code' => 'DOMAIN_NOT_ALLOWED'])->save();
+            $audit->record('mail.send.refused', 'denied', $account->user, 'outbox_message', $message->id, ['reason' => 'domain_not_allowed']);
+
+            return;
+        }
         $payload = (array) $message->payload_enc;
         $temporaryFiles = [];
         $provider = null;

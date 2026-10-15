@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Jobs\SyncAccountJob;
 use App\Models\EmailAccount;
 use App\Models\User;
+use App\Support\CompanyDomains;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -18,7 +19,8 @@ class SyncDueAccounts extends Command
         $ids = EmailAccount::query()
             ->whereIn('status', [EmailAccount::STATUS_ACTIVE, EmailAccount::STATUS_SYNCING, EmailAccount::STATUS_THROTTLED, EmailAccount::STATUS_UNREACHABLE, EmailAccount::STATUS_PENDING])
             ->where(fn ($q) => $q->whereNull('next_sync_at')->orWhere('next_sync_at', '<=', now()))
-            ->whereIn('user_id', User::query()->where('status', User::STATUS_ACTIVE)->select('id'))
+            ->inAllowedDomains()
+            ->whereIn('user_id', User::query()->where('status', User::STATUS_ACTIVE)->whereIn('email_domain', CompanyDomains::all())->select('id'))
             ->orderBy('next_sync_at')
             ->limit((int) $this->option('limit'))
             ->pluck('id');

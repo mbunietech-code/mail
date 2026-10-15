@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\CompanyDomains;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -84,5 +86,20 @@ class EmailAccount extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(MessageMetadata::class);
+    }
+
+    /**
+     * Mailboxes on a domain the organisation currently allows.
+     *
+     * @param  Builder<EmailAccount>  $query
+     */
+    public function scopeInAllowedDomains(Builder $query): void
+    {
+        $query->whereIn($query->getModel()->qualifyColumn('email_domain'), CompanyDomains::all());
+    }
+
+    public function hasAllowedDomain(): bool
+    {
+        return CompanyDomains::contains($this->email_address);
     }
 }

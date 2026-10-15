@@ -10,6 +10,7 @@ use App\Models\ProviderProfile;
 use App\Models\User;
 use App\Services\Accounts\AccountService;
 use App\Services\Audit\AuditLogger;
+use App\Support\CompanyDomains;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -171,6 +172,11 @@ class GoogleOAuthService
 
         $tokens = $row[1];
         $email = $this->profileEmail($tokens['access_token']);
+        if (! CompanyDomains::contains($email)) {
+            $this->audit->record('account.gmail.link_failed', 'denied', $user, context: ['reason' => 'domain_not_allowed']);
+
+            throw new ApiException('DOMAIN_NOT_ALLOWED', 422, 'Only company mailboxes can be linked ('.CompanyDomains::display().').');
+        }
         $profile = ProviderProfile::query()->where('driver', ProviderProfile::DRIVER_GMAIL)->where('enabled', true)->firstOrFail();
 
         $account = DB::transaction(function () use ($user, $email, $profile, $tokens) {

@@ -10,6 +10,7 @@ use App\Services\Audit\AuditLogger;
 use App\Services\Auth\LoginThrottle;
 use App\Services\Auth\MfaService;
 use App\Services\Auth\TokenService;
+use App\Support\CompanyDomains;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -37,6 +38,15 @@ class LoginController extends Controller
         $email = strtolower(trim($data['email']));
         $ip = (string) $request->ip();
         $this->throttle->ensureNotLimited($email, $ip);
+
+        // Only company domains may sign in. Decided before any credential or account
+        // lookup, so the answer is the same whether or not the address exists.
+        if (! CompanyDomains::contains($email)) {
+            $this->throttle->recordFailure($email, $ip);
+            $this->audit->record('auth.login.failed', 'denied', context: ['reason' => 'domain_not_allowed', 'domain' => CompanyDomains::domainOf($email)]);
+
+            throw ApiException::forbidden('DOMAIN_NOT_ALLOWED', 'Use your company email address ('.CompanyDomains::display().').');
+        }
 
         $user = User::query()->where('email', $email)->first();
 
@@ -117,6 +127,15 @@ class LoginController extends Controller
         $data = $request->validate(['refresh_token' => ['required', 'string', 'max:128']]);
 
         return response()->json($this->tokens->refresh($data['refresh_token'], $request)->toResponse());
+    }
+
+    /** Public: the company domains, so the app can guide sign-in (they are public DNS facts anyway). */
+    public function domains(): JsonResponse
+    {
+        return response()->json([
+            'organization' => (string) config('mbuniemail.organization_name'),
+            'domains' => CompanyDomains::all(),
+        ]);
     }
 
     /**
