@@ -161,6 +161,18 @@ class MessageListController extends Notifier<MessageListState> {
     items: state.items.where((m) => m.id != id).toList(),
   );
 
+  void removeManyLocally(Set<String> ids) => state = state.copyWith(
+    items: state.items.where((m) => !ids.contains(m.id)).toList(),
+  );
+
+  void markManyLocally(Set<String> ids, {required bool seen}) =>
+      state = state.copyWith(
+        items: [
+          for (final m in state.items)
+            ids.contains(m.id) ? m.copyWith(isSeen: seen) : m,
+        ],
+      );
+
   /// Optimistic toggle; reverted if the server (or provider) refuses.
   Future<void> setFlags(MessageSummary m, {bool? seen, bool? flagged}) async {
     markLocally(m.id, seen: seen, flagged: flagged);

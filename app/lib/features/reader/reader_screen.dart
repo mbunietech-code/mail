@@ -321,11 +321,40 @@ class _Actions extends ConsumerWidget {
           onPressed: () =>
               run(() => repo.markSpam(message.id, true), removes: true),
         ),
-        IconButton(
-          tooltip: 'Delete',
-          icon: const Icon(Icons.delete_outline),
-          onPressed: () => run(() => repo.trash(message.id), removes: true),
-        ),
+        if (ref.watch(currentFolderProvider)?.role == 'trash')
+          // In Trash, delete is permanent (like Gmail), so confirm first.
+          IconButton(
+            tooltip: 'Delete forever',
+            icon: const Icon(Icons.delete_forever_outlined),
+            onPressed: () async {
+              final ok = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Delete forever?'),
+                  content: const Text('This can’t be undone.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Delete forever'),
+                    ),
+                  ],
+                ),
+              );
+              if (ok == true) {
+                await run(() => repo.trash(message.id), removes: true);
+              }
+            },
+          )
+        else
+          IconButton(
+            tooltip: 'Delete',
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () => run(() => repo.trash(message.id), removes: true),
+          ),
       ],
     );
   }

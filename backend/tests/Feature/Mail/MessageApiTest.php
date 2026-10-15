@@ -158,6 +158,25 @@ class MessageApiTest extends TestCase
         $this->assertSame(0, MessageMetadata::query()->count(), 'cache row removed; next sync caches the Trash copy');
     }
 
+    public function test_deleting_from_trash_deletes_forever_one_or_many(): void
+    {
+        $this->seedInbox(3);
+        foreach ([1, 2, 3] as $uid) {
+            $this->freshRequest()->deleteJson("/api/v1/messages/{$this->message($uid)->id}", [], $this->auth)->assertNoContent();
+        }
+        app(SyncService::class)->syncAccount($this->account->refresh(), true);
+        $inTrash = MessageMetadata::query()->where('folder_id', $this->folder('trash')->id)->orderBy('uid')->pluck('id')->all();
+        $this->assertCount(3, $inTrash);
+
+        $this->freshRequest()->deleteJson("/api/v1/messages/{$inTrash[0]}", [], $this->auth)->assertNoContent();
+        $this->freshRequest()->postJson('/api/v1/messages/bulk', ['ids' => [$inTrash[1], $inTrash[2]], 'action' => 'trash'], $this->auth)->assertOk()
+            ->assertJsonPath("results.{$inTrash[1]}", 'ok')
+            ->assertJsonPath("results.{$inTrash[2]}", 'ok');
+
+        $this->assertSame([], $this->fake->messages['Trash']);
+        $this->assertSame(0, MessageMetadata::query()->count());
+    }
+
     public function test_spam_and_bulk_actions(): void
     {
         $this->seedInbox(3);

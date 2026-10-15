@@ -296,13 +296,95 @@ class _MailArea extends ConsumerWidget {
   }
 }
 
-class MessageList extends ConsumerWidget {
+class MessageList extends ConsumerStatefulWidget {
   const MessageList({super.key, required this.folder, required this.onOpen});
   final MailFolder folder;
   final void Function(MessageSummary) onOpen;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MessageList> createState() => _MessageListState();
+}
+
+/// Long-press (or tap the avatar) to start selecting, like Gmail; then act on all
+/// selected messages at once (FR-MAIL-011).
+class _MessageListState extends ConsumerState<MessageList> {
+  final Set<String> _checked = {};
+
+  bool get _selecting => _checked.isNotEmpty;
+
+  void _toggle(String id) {
+    HapticFeedback.selectionClick();
+    setState(
+      () => _checked.contains(id) ? _checked.remove(id) : _checked.add(id),
+    );
+  }
+
+  void _clear() => setState(_checked.clear);
+
+  Future<void> _bulk(String action) async {
+    final folder = widget.folder;
+    final ctrl = ref.read(messageListProvider(folder.id).notifier);
+    final ids = {..._checked};
+    final forever = action == 'trash' && folder.role == 'trash';
+    if (forever) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(
+            'Delete ${ids.length} message${ids.length == 1 ? '' : 's'} forever?',
+          ),
+          content: const Text('This can’t be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete forever'),
+            ),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    _clear();
+    if (action == 'trash') {
+      ctrl.removeManyLocally(ids);
+      if (ids.contains(ref.read(selectedMessageIdProvider))) {
+        ref.read(selectedMessageIdProvider.notifier).select(null);
+      }
+    } else {
+      ctrl.markManyLocally(ids, seen: action == 'seen');
+    }
+    try {
+      final failed = await ref
+          .read(mailRepositoryProvider)
+          .bulk(ids.toList(), action);
+      final done = ids.length - failed.length;
+      if (failed.isNotEmpty) await ctrl.refresh();
+      if (action == 'trash') {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              failed.isEmpty
+                  ? '$done ${forever ? 'deleted forever' : 'moved to Trash'}'
+                  : '$done done, ${failed.length} could not be deleted',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      await ctrl.refresh();
+      if (mounted) showFailure(context, e);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final folder = widget.folder;
+    final onOpen = widget.onOpen;
     final s = ref.watch(messageListProvider(folder.id));
     final ctrl = ref.read(messageListProvider(folder.id).notifier);
     final account = ref.watch(currentAccountProvider);
@@ -313,6 +395,8 @@ class MessageList extends ConsumerWidget {
     final canTrash = !const {'trash', 'spam'}.contains(folder.role);
     final canArchive = archive != null && archive.id != folder.id;
 
+    // Drop ids that left the list (refresh, swipe, another device).
+    _checked.retainWhere((id) => s.items.any((m) => m.id == id));
     if (s.items.isEmpty && s.loading) {
       return const SkeletonList(label: 'Loading messages');
     }
@@ -341,7 +425,7 @@ class MessageList extends ConsumerWidget {
       }
     }
 
-    return RefreshIndicator(
+    final list = RefreshIndicator(
       onRefresh: () => HomeShell.refresh(ref),
       child: s.items.isEmpty
           ? ListView(
@@ -389,7 +473,11 @@ class MessageList extends ConsumerWidget {
                   final tile = MessageTile(
                     message: m,
                     selected: ref.watch(selectedMessageIdProvider) == m.id,
+                    checked: _checked.contains(m.id),
+                    onLongPress: () => _toggle(m.id),
+                    onAvatarTap: () => _toggle(m.id),
                     onTap: () {
+                      if (_selecting) return _toggle(m.id);
                       if (!m.isSeen) {
                         ctrl.setFlags(m, seen: true).catchError((_) {});
                       }
@@ -404,7 +492,7 @@ class MessageList extends ConsumerWidget {
                   return EnterAnimation(
                     key: ValueKey(m.id),
                     index: i < 12 ? i : 0,
-                    child: !canTrash && !canArchive
+                    child: _selecting || (!canTrash && !canArchive)
                         ? tile
                         : Dismissible(
                             key: ValueKey('swipe-${m.id}'),
@@ -429,6 +517,111 @@ class MessageList extends ConsumerWidget {
                 },
               ),
             ),
+    );
+
+    final allIds = {for (final m in s.items) m.id};
+    final allChecked = allIds.isNotEmpty && _checked.containsAll(allIds);
+    final anyUnread = s.items.any((m) => _checked.contains(m.id) && !m.isSeen);
+    return PopScope(
+      canPop: !_selecting,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _clear();
+      },
+      child: Column(
+        children: [
+          AnimatedSize(
+            duration: Motion.fast,
+            child: !_selecting
+                ? const SizedBox(width: double.infinity)
+                : _SelectionBar(
+                    count: _checked.length,
+                    allChecked: allChecked,
+                    anyUnread: anyUnread,
+                    inTrash: folder.role == 'trash',
+                    onClose: _clear,
+                    onSelectAll: () => setState(
+                      () => allChecked
+                          ? _checked.clear()
+                          : _checked.addAll(allIds),
+                    ),
+                    onRead: () => _bulk(anyUnread ? 'seen' : 'unseen'),
+                    onDelete: () => _bulk('trash'),
+                  ),
+          ),
+          Expanded(child: list),
+        ],
+      ),
+    );
+  }
+}
+
+/// Contextual bar shown while messages are selected (Gmail-style).
+class _SelectionBar extends StatelessWidget {
+  const _SelectionBar({
+    required this.count,
+    required this.allChecked,
+    required this.anyUnread,
+    required this.inTrash,
+    required this.onClose,
+    required this.onSelectAll,
+    required this.onRead,
+    required this.onDelete,
+  });
+  final int count;
+  final bool allChecked;
+  final bool anyUnread;
+  final bool inTrash;
+  final VoidCallback onClose;
+  final VoidCallback onSelectAll;
+  final VoidCallback onRead;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.secondaryContainer,
+      child: SizedBox(
+        height: 56,
+        child: Row(
+          children: [
+            IconButton(
+              tooltip: 'Clear selection',
+              icon: const Icon(Icons.close),
+              onPressed: onClose,
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                '$count',
+                style: Theme.of(context).textTheme.titleMedium,
+                semanticsLabel: '$count selected',
+              ),
+            ),
+            IconButton(
+              tooltip: allChecked ? 'Deselect all' : 'Select all',
+              icon: Icon(allChecked ? Icons.deselect : Icons.select_all),
+              onPressed: onSelectAll,
+            ),
+            IconButton(
+              tooltip: anyUnread ? 'Mark as read' : 'Mark as unread',
+              icon: Icon(
+                anyUnread
+                    ? Icons.mark_email_read_outlined
+                    : Icons.mark_email_unread_outlined,
+              ),
+              onPressed: onRead,
+            ),
+            IconButton(
+              tooltip: inTrash ? 'Delete forever' : 'Delete',
+              icon: Icon(
+                inTrash ? Icons.delete_forever_outlined : Icons.delete_outline,
+              ),
+              onPressed: onDelete,
+            ),
+            const SizedBox(width: 4),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -498,11 +691,19 @@ class MessageTile extends StatelessWidget {
     required this.onTap,
     required this.onStar,
     this.selected = false,
+    this.checked = false,
+    this.onLongPress,
+    this.onAvatarTap,
   });
   final MessageSummary message;
   final VoidCallback onTap;
   final VoidCallback onStar;
   final bool selected;
+
+  /// Part of a multi-selection: the avatar turns into a check mark.
+  final bool checked;
+  final VoidCallback? onLongPress;
+  final VoidCallback? onAvatarTap;
 
   @override
   Widget build(BuildContext context) {
@@ -528,15 +729,18 @@ class MessageTile extends StatelessWidget {
           '${unread ? 'Unread. ' : ''}From ${m.from.display}. ${m.subject}. $when${m.hasAttachments ? '. Has attachments' : ''}',
       excludeSemantics: true,
       button: true,
-      selected: selected,
+      selected: selected || checked,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Material(
-          color: selected ? scheme.secondaryContainer : Colors.transparent,
+          color: selected || checked
+              ? scheme.secondaryContainer
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(18),
           child: InkWell(
             borderRadius: BorderRadius.circular(18),
             onTap: onTap,
+            onLongPress: onLongPress,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
               child: Row(
@@ -544,9 +748,13 @@ class MessageTile extends StatelessWidget {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
-                    child: LetterAvatar(
-                      name: m.from.name ?? '',
-                      email: m.from.email,
+                    child: GestureDetector(
+                      onTap: onAvatarTap,
+                      child: LetterAvatar(
+                        name: m.from.name ?? '',
+                        email: m.from.email,
+                        selected: checked,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 14),

@@ -124,7 +124,8 @@ class MessageService
     {
         $folder = $message->folder;
 
-        if ($permanent) {
+        // Like Gmail: deleting from Trash means "delete forever".
+        if ($permanent || $folder->role === 'trash') {
             if ($folder->role !== 'trash') {
                 throw new ApiException('CONFLICT', 409, 'Only messages already in Trash can be deleted permanently.');
             }

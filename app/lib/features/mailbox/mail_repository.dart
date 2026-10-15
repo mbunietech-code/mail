@@ -80,6 +80,22 @@ class MailRepository {
 
   Future<void> trash(String id) => api.delete('messages/$id');
 
+  /// One action on many messages (FR-MAIL-011), 100 per request. Returns the ids the
+  /// server did not apply, so the caller can restore them.
+  Future<List<String>> bulk(List<String> ids, String action) async {
+    final failed = <String>[];
+    for (var i = 0; i < ids.length; i += 100) {
+      final chunk = ids.sublist(i, i + 100 < ids.length ? i + 100 : ids.length);
+      final j = await api.postJson('messages/bulk', {
+        'ids': chunk,
+        'action': action,
+      });
+      final results = (j['results'] as Map?) ?? const {};
+      failed.addAll(chunk.where((id) => results[id] != 'ok'));
+    }
+    return failed;
+  }
+
   Future<void> move(String id, String folderId) =>
       api.postJson('messages/$id/move', {'folder_id': folderId});
 
