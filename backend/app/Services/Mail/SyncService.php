@@ -2,6 +2,7 @@
 
 namespace App\Services\Mail;
 
+use App\Jobs\PushNewMailJob;
 use App\Mailbox\Contracts\MailProvider;
 use App\Mailbox\Data\SyncCursor;
 use App\Mailbox\ProviderError;
@@ -83,9 +84,11 @@ class SyncService
         $windowStart = now()->subDays((int) $cfg['window_days']);
         $isImap = $account->providerProfile->driver === 'imap_smtp';
         $created = 0;
+        $newUnseenIds = [];
 
         $cursor = new SyncCursor($state->uidvalidity, $state->last_uid, $state->highest_modseq, $state->history_id);
-        $knownUids = $isImap && ! $cursor->isInitial()
+        $wasInitial = $cursor->isInitial();
+        $knownUids = $isImap && ! $wasInitial
             ? MessageMetadata::query()->where('folder_id', $folder->id)->where('uidvalidity', (int) $state->uidvalidity)->pluck('uid')->map(fn ($u) => (int) $u)->all()
             : null;
 
@@ -101,6 +104,7 @@ class SyncService
                 });
                 $cursor = new SyncCursor;
                 $knownUids = null;
+                $wasInitial = true; // a rebuilt mailbox re-downloads old mail; don't push it
 
                 continue;
             }
@@ -143,12 +147,22 @@ class SyncService
             });
 
             $created += count($createdRows);
+            foreach ($createdRows as $row) {
+                if (! $row->is_seen) {
+                    $newUnseenIds[] = $row->id;
+                }
+            }
             $this->contacts->collect($account, $folder, $createdRows);
             $cursor = $changes->nextCursor;
 
             if (! $changes->hasMore) {
                 break;
             }
+        }
+
+        // Push only for mail that arrived after the first sync, never for the backlog.
+        if ($folder->role === 'inbox' && ! $wasInitial && $newUnseenIds !== []) {
+            PushNewMailJob::dispatch($account->id, $newUnseenIds);
         }
 
         return $created;

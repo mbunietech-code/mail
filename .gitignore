@@ -38,3 +38,6 @@ storage/*.key
 /infra/dev/tls/
 /infra/dev/secrets/
 /infra/staging-local/generated/
+
+# Firebase service-account key for push (secret, per environment)
+infra/dev/fcm-service-account.json

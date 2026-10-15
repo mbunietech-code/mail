@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/errors.dart';
 import '../../core/ids.dart';
 import '../../core/providers.dart';
+import '../../core/push/push_service.dart';
 import '../../core/storage/token_store.dart';
 
 sealed class AuthState {
@@ -148,6 +149,11 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> logout() async {
     final api = ref.read(apiClientProvider);
+    try {
+      await ref.read(pushServiceProvider).unregister();
+    } catch (_) {
+      // No push on this device, or Firebase unreachable: sign-out continues.
+    }
     try {
       await api.postJson('auth/logout');
     } on AppFailure {

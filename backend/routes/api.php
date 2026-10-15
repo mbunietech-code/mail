@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\MeController;
 use App\Http\Controllers\Api\V1\Auth\MfaController;
 use App\Http\Controllers\Api\V1\Auth\PasswordResetController;
+use App\Http\Controllers\Api\V1\Auth\PushTokenController;
 use App\Http\Controllers\Api\V1\Auth\ReauthController;
 use App\Http\Controllers\Api\V1\Auth\SessionController;
 use App\Http\Controllers\Api\V1\Mail\AttachmentController;
@@ -54,6 +55,8 @@ Route::prefix('v1')->group(function () {
         // ---- Full access tokens ----------------------------------------------------
         Route::middleware('token:mail')->group(function () {
             Route::post('auth/logout', [LoginController::class, 'logout'])->name('auth.logout');
+            Route::put('me/push-token', [PushTokenController::class, 'update'])->name('me.push-token.update');
+            Route::delete('me/push-token', [PushTokenController::class, 'destroy'])->name('me.push-token.destroy');
             Route::post('auth/reauth', ReauthController::class)->name('auth.reauth');
             Route::get('auth/sessions', [SessionController::class, 'index'])->name('auth.sessions.index');
             Route::delete('auth/sessions/{id}', [SessionController::class, 'destroy'])

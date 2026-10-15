@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Auth;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Models\Device;
+use App\Models\RefreshSession;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
 use App\Services\Auth\LoginThrottle;
@@ -114,6 +115,11 @@ class LoginController extends Controller
         $family = $this->tokens->currentFamilyId($user);
 
         if ($family !== null) {
+            // A signed-out device must stop receiving mail notifications.
+            $deviceId = RefreshSession::query()->where('family_id', $family)->whereNotNull('device_id')->value('device_id');
+            if ($deviceId !== null) {
+                Device::query()->where('user_id', $user->id)->whereKey($deviceId)->update(['push_token' => null]);
+            }
             $this->tokens->revokeFamily($family);
         }
         $user->currentAccessToken()->delete();

@@ -12,6 +12,13 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:usesCleartextTraffic="false"
         tools:replace="android:allowBackup">
+        <!-- New-mail push (FR-NOTIF-001): icon and channel for notifications shown by FCM. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_mail" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="new_mail" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/push/push_service.dart';
 import 'core/theme.dart';
 import 'features/accounts/accounts_screen.dart';
 import 'features/auth/auth_controller.dart';
@@ -75,11 +78,40 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class MbunieMailApp extends ConsumerWidget {
+class MbunieMailApp extends ConsumerStatefulWidget {
   const MbunieMailApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MbunieMailApp> createState() => _MbunieMailAppState();
+}
+
+class _MbunieMailAppState extends ConsumerState<MbunieMailApp> {
+  StreamSubscription<String>? _openedFromPush;
+
+  @override
+  void initState() {
+    super.initState();
+    final push = ref.read(pushServiceProvider);
+    _openedFromPush = push.openedMessages.listen(
+      (id) => ref.read(routerProvider).push('/message/$id'),
+    );
+    if (ref.read(authControllerProvider) is SignedIn) push.register();
+  }
+
+  @override
+  void dispose() {
+    _openedFromPush?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Register for new-mail push whenever a session starts (FR-NOTIF-001).
+    ref.listen(authControllerProvider, (prev, next) {
+      if (next is SignedIn && prev is! SignedIn) {
+        ref.read(pushServiceProvider).register();
+      }
+    });
     return MaterialApp.router(
       title: 'MbunieMail',
       debugShowCheckedModeBanner: false,

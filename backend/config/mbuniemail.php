@@ -152,6 +152,12 @@ return [
         'maint_connection' => env('MBUNIEMAIL_AUDIT_MAINT_CONNECTION', 'mariadb'),
     ],
 
+    // Android push (FR-NOTIF-001). Path to a Firebase service-account JSON (mode 0600).
+    // Empty = push disabled; the app still shows new mail when opened.
+    'push' => [
+        'fcm_credentials' => env('MBUNIEMAIL_FCM_CREDENTIALS', ''),
+    ],
+
     'users' => [
         // Personal data of deactivated users is deleted after this many days unless on legal hold.
         'deactivated_retention_days' => (int) env('MBUNIEMAIL_DEACTIVATED_RETENTION_DAYS', 30),
