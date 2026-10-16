@@ -453,6 +453,10 @@ void main() {
         find.text('Sign out of MbunieMail on this device'),
         200,
       );
+      await tester.ensureVisible(
+        find.text('Sign out of MbunieMail on this device'),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Sign out of MbunieMail on this device'));
       await tester.pumpAndSettle();
 

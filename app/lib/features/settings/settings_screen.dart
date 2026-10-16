@@ -5,6 +5,7 @@ import '../../app.dart';
 import '../../core/providers.dart';
 import '../../shared/widgets.dart';
 import '../auth/auth_controller.dart';
+import '../lock/lock_settings.dart';
 
 final sessionsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>(
   (ref) async =>
@@ -47,6 +48,8 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const _Header('Security'),
+          const AppLockSettings(),
           const _Header('Privacy'),
           SwitchListTile(
             title: const Text('Ask before loading remote images'),

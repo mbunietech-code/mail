@@ -1,6 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <!-- Security (risk R-14): no cloud backup or device-to-device transfer of app data,
          so session tokens and cached mail never leave the device in a backup; HTTPS only. -->
     <application

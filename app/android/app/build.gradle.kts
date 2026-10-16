@@ -58,4 +58,6 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    // AppCompat themes (styles.xml) for the fingerprint dialog on Android 8.
+    implementation("androidx.appcompat:appcompat:1.7.0")
 }
