@@ -2,7 +2,7 @@
 @section('title', 'Sign in')
 @section('content')
 <h1>Sign in</h1>
-<p class="lead">For MbuniTech administrators. Every sign-in is recorded.</p>
+<p class="lead">For MbunieTech administrators. Every sign-in is recorded.</p>
 <form method="post" action="{{ route('admin.login.submit') }}">
     @csrf
     <label for="email">Work email</label>

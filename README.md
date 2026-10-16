@@ -1,6 +1,6 @@
 # MbunieMail
 
-Corporate email client for MbuniTech: Flutter (Android + Windows) and a Laravel backend that connects to Hostinger IMAP/SMTP.
+Corporate email client for MbunieTech: Flutter (Android + Windows) and a Laravel backend that connects to Hostinger IMAP/SMTP.
 **Status:** pre-release; Phases 1–5 and 7 complete (Phase 6, the Flutter app, awaits SDK installation). See [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). Not production-ready.
 
 ## Layout

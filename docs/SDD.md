@@ -35,7 +35,7 @@ MbunieMail is a **backend-mediated mail client**. Flutter apps never talk to IMA
 ```mermaid
 C4Context
   title MbunieMail — System Context
-  Person(emp, "Employee", "MbuniTech staff on Android/Windows")
+  Person(emp, "Employee", "MbunieTech staff on Android/Windows")
   Person(adm, "Administrator", "Operational admin, no content access")
   System(mm, "MbunieMail", "Corporate mail client platform")
   System_Ext(hst, "Hostinger Email", "IMAP/SMTP mailboxes for mt.co.tz")

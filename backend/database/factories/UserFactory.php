@@ -19,7 +19,7 @@ class UserFactory extends Factory
     {
         return [
             'organization_id' => fn () => Organization::query()->value('id')
-                ?? Organization::query()->create(['name' => 'MbuniTech', 'allowed_domains' => ['mt.co.tz']])->id,
+                ?? Organization::query()->create(['name' => 'MbunieTech', 'allowed_domains' => ['mt.co.tz']])->id,
             'name' => fake()->name(),
             'email' => fake()->unique()->userName().'@mt.co.tz',
             'password' => static::$password ??= Hash::make('Correct-Horse-Battery-9'),

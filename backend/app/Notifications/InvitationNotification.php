@@ -23,7 +23,7 @@ class InvitationNotification extends Notification
     {
         return (new MailMessage)
             ->subject('You have been invited to MbunieMail')
-            ->line('MbuniTech has invited you to use MbunieMail, the company email app.')
+            ->line('MbunieTech has invited you to use MbunieMail, the company email app.')
             ->action('Accept invitation', config('mbuniemail.app_link_url').'/invite#token='.$this->token)
             ->line('This invitation expires on '.$this->expiresAt->toDayDateTimeString().' (UTC) and can be used once.')
             ->line('If you were not expecting this, ignore this email.');

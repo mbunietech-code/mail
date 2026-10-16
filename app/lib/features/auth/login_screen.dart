@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/errors.dart';
 import '../../core/providers.dart';
+import '../../shared/brand_logo.dart';
 import '../../shared/motion.dart';
 import 'auth_controller.dart';
 
@@ -107,30 +108,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Center(
-                            child: Container(
-                              width: 72,
-                              height: 72,
-                              decoration: BoxDecoration(
-                                color: scheme.primary,
-                                borderRadius: BorderRadius.circular(22),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: scheme.primary.withValues(
-                                      alpha: 0.35,
-                                    ),
-                                    blurRadius: 24,
-                                    offset: const Offset(0, 10),
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                Icons.mail_lock_rounded,
-                                size: 38,
-                                color: scheme.onPrimary,
-                              ),
-                            ),
-                          ),
+                          const Center(child: MbunieMailLogo(size: 96)),
                           const SizedBox(height: 20),
                           Text(
                             'MbunieMail',
@@ -141,7 +119,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Sign in with your MbuniTech work email',
+                            'Sign in with your MbunieTech work email',
                             textAlign: TextAlign.center,
                             style: theme.textTheme.bodyLarge?.copyWith(
                               color: scheme.onSurfaceVariant,

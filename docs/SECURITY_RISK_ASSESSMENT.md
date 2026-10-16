@@ -69,7 +69,7 @@ Columns: **L** likelihood · **I** impact · **Inh** inherent score · **Res** r
 - **Res:** L2 I5 = **10 Medium** · Owner **SO**
 
 ### R-02 Weak passwords and insecure recovery
-- **Scenario:** A user picks `MbuniTech2026`, or the reset link is guessable or long-lived.
+- **Scenario:** A user picks `MbunieTech2026`, or the reset link is guessable or long-lived.
 - **L3 I4 → 12 High**
 - **Preventive:** 12+ characters, context and breach checks; 256-bit reset tokens stored hashed, 30 min, single-use; reset revokes sessions; MFA still required after reset.
 - **Detective:** audit resets; notify the user by email on password change.

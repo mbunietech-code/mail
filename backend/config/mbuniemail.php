@@ -8,7 +8,7 @@
 
 return [
 
-    'organization_name' => env('MBUNIEMAIL_ORGANIZATION_NAME', 'MbuniTech'),
+    'organization_name' => env('MBUNIEMAIL_ORGANIZATION_NAME', 'MbunieTech'),
 
     // Email domains employees may log in with and link mailboxes for.
     'allowed_domains' => array_values(array_filter(array_map(
@@ -117,7 +117,7 @@ return [
         'check_breached' => (bool) env('MBUNIEMAIL_HIBP_ENABLED', true),
         'reset_ttl_minutes' => 30,
         // Words rejected as password components (case-insensitive).
-        'context_words' => ['mbuni', 'mbunitech', 'mbuniemail', 'password'],
+        'context_words' => ['mbuni', 'mbunie', 'mbunitech', 'mbunietech', 'mbuniemail', 'password'],
     ],
 
     'throttle' => [

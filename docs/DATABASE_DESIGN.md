@@ -14,7 +14,7 @@ Version 0.1 · 2026-10-14 · Engine: MariaDB 11.x (InnoDB, `utf8mb4_unicode_ci`)
 
 ## 1. Principles
 - ULID primary keys (`CHAR(26)`) for every externally referenced entity, so IDs cannot be enumerated.
-- Every user-owned row reaches `users.id` through foreign keys. `organization_id` exists on top-level tables to allow future multi-tenancy (single org "MbuniTech" in release 1).
+- Every user-owned row reaches `users.id` through foreign keys. `organization_id` exists on top-level tables to allow future multi-tenancy (single org "MbunieTech" in release 1).
 - Secrets are stored only encrypted (envelope) or hashed. Plaintext columns for secrets are forbidden.
 - Mail content is not persisted (see SDD ADR-002). Only metadata, of which subject and snippet are encrypted.
 - All schema changes go through Laravel migrations, and each has a tested `down()`.

@@ -47,7 +47,7 @@ All values are read through `config/*.php`, so they keep working after `php arti
 ## Organisation and links
 | Variable | Notes |
 |---|---|
-| `MBUNIEMAIL_ORGANIZATION_NAME` | `MbuniTech` |
+| `MBUNIEMAIL_ORGANIZATION_NAME` | `MbunieTech` |
 | `MBUNIEMAIL_ALLOWED_DOMAINS` | Comma-separated, e.g. `mt.co.tz`. Login invitations and mailbox linking are restricted to these |
 | `MBUNIEMAIL_APP_LINK_URL` | Base of reset and invitation links (Android App Link / web handler). Tokens are placed in the URL fragment |
 

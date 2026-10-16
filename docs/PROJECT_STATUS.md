@@ -42,7 +42,7 @@ Last updated: 2026-10-14 (Phase 6 in progress, branch `phase-6-app`). Legend: �
 | 8 Security | Security matrix traceability, missing tests added, testssl, ZAP baseline, SQLi corpus, git-history secret scan, PHPStan L8 review | ✅ | Open: SEC-T21 malware scanning (not implemented), SEC-T42 port scan (VPS), Flutter items |
 | 8 Security | Retention: deactivated-user purge (legal hold), audit archive and prune | ✅ | Set `DB_MAINT_*` and `MBUNIEMAIL_AUDIT_MAINT_CONNECTION=audit_maint` in production |
 | 9 Deploy | ENVIRONMENT_VARIABLES.md | ✅ | |
-| 9 Deploy | DEPLOYMENT, BACKUP_AND_RESTORE, INCIDENT_RESPONSE, SECURITY_HARDENING_CHECKLIST, OPERATIONS_RUNBOOK | ✅ draft | Roles and legal timelines still to be filled in by MbuniTech |
+| 9 Deploy | DEPLOYMENT, BACKUP_AND_RESTORE, INCIDENT_RESPONSE, SECURITY_HARDENING_CHECKLIST, OPERATIONS_RUNBOOK | ✅ draft | Roles and legal timelines still to be filled in by MbunieTech |
 | 9 Deploy | Nginx, PHP-FPM, systemd (workers, scheduler, backup), logrotate, Redis, least-privilege DB grants | ✅ validated offline | Staging run required |
 | 9 Deploy | Encrypted backup, restore, DR drill, DNS check, deploy script | ✅ drill passed on dev | Staging drill required |
 | 9 Deploy | Security alerting (`mbuniemail:security-alerts`), audited console MFA reset | ✅ | Set `MBUNIEMAIL_ALERT_EMAIL` |

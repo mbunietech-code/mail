@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// MbuniTech brand on Material 3. Colour pairs meet WCAG 2.2 AA contrast (SRS §11).
+/// MbunieTech brand on Material 3. Colour pairs meet WCAG 2.2 AA contrast (SRS §11).
 class AppTheme {
   static const brandBlue = Color(0xFF2456D3);
 

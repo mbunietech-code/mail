@@ -2,7 +2,7 @@
 
 Version 0.1 · 2026-10-14 · Owner: Security Owner (SO), to be named · Review: every 12 months and after every major incident
 
-> This plan is a starting point. It must be adopted by MbuniTech management, the named roles filled in, and the legal/PDPA steps confirmed by counsel. It is not legal advice.
+> This plan is a starting point. It must be adopted by MbunieTech management, the named roles filled in, and the legal/PDPA steps confirmed by counsel. It is not legal advice.
 
 ## 1. Roles
 | Role | Who | Responsibility |

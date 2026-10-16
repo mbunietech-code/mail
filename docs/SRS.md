@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Product | MbunieMail |
-| Owner | MbuniTech |
+| Owner | MbunieTech |
 | Document version | 0.1 (draft for review) |
 | Date | 2026-10-14 |
 | Status | Draft. Requires stakeholder sign-off before implementation of dependent modules |
@@ -16,7 +16,7 @@
 This document states what MbunieMail must do and the quality attributes it must have. It is the reference for design (SDD), testing (TEST_PLAN) and acceptance.
 
 ### 1.2 Scope
-MbunieMail is a corporate email client and backend for MbuniTech employees. It provides:
+MbunieMail is a corporate email client and backend for MbunieTech employees. It provides:
 
 - An Android app and a Windows desktop app, both built from one Flutter codebase.
 - A Laravel backend (REST API) that connects to the company's existing **Hostinger** mailboxes over IMAP and SMTP.
@@ -28,7 +28,7 @@ MbunieMail is **not** a mail server. It does not host mailboxes, accept inbound 
 ### 1.3 Definitions
 | Term | Meaning |
 |---|---|
-| Employee | An authorized MbuniTech user of the client apps |
+| Employee | An authorized MbunieTech user of the client apps |
 | Mailbox / Email account | A provider mailbox (for example a Hostinger mailbox on `mt.co.tz`) linked to an employee |
 | Provider adapter | A backend component that implements mail operations for one provider (Hostinger IMAP/SMTP, Gmail API) |
 | Metadata cache | Envelope data (headers, flags, short snippet) stored by the backend. Full bodies are not stored by default |
@@ -59,7 +59,7 @@ MbunieMail is **not** a mail server. It does not host mailboxes, accept inbound 
 
 | Stakeholder | Interest |
 |---|---|
-| MbuniTech management (CEO) | Productivity, confidentiality, cost |
+| MbunieTech management (CEO) | Productivity, confidentiality, cost |
 | Employees | Fast, reliable, easy mail on phone and desktop |
 | IT / operational administrators | Onboarding, offboarding, policy, health |
 | Security officer / Data Protection Officer (DPO) | Confidentiality, compliance (Tanzania PDPA 2022), incident response |

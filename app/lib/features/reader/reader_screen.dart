@@ -370,7 +370,7 @@ class _SecurityBanner extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final warnings = <String>[
       if (security.lookalikeDomain)
-        'The sender’s domain looks like MbuniTech’s but is different (${from.email.split('@').last}).',
+        'The sender’s domain looks like MbunieTech’s but is different (${from.email.split('@').last}).',
       if (security.displayNameSpoof) 'The sender’s name contains a company address, but the message is from outside.',
       if (security.authFailed) 'This message failed sender authentication (SPF/DMARC). It may be forged.',
       if (security.replyToDiffers)
@@ -408,7 +408,7 @@ class _SecurityBanner extends StatelessWidget {
                   ),
                   if (security.externalSender && warnings.isEmpty)
                     const Text(
-                      'This message came from outside MbuniTech. Don’t open unexpected attachments or links.',
+                      'This message came from outside MbunieTech. Don’t open unexpected attachments or links.',
                     ),
                   for (final w in warnings) Text('• $w'),
                 ],

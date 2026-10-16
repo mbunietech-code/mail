@@ -85,7 +85,7 @@ class PasswordResetTest extends TestCase
         $user = $this->makeUser(['email' => 'developer@mt.co.tz']);
         $token = Password::broker()->createToken($user);
 
-        foreach (['Short-1', 'Developer-Strong-77', 'MbuniTech-Strong-77'] as $bad) {
+        foreach (['Short-1', 'Developer-Strong-77', 'MbunieTech-Strong-77'] as $bad) {
             $this->postJson('/api/v1/auth/password/reset', $this->payload($user, $token, $bad))
                 ->assertStatus(422)->assertJsonValidationErrors('password');
         }

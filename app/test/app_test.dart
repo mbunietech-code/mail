@@ -362,7 +362,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Be careful with this message'), findsOneWidget);
-        expect(find.textContaining('looks like MbuniTech'), findsOneWidget);
+        expect(find.textContaining('looks like MbunieTech'), findsOneWidget);
         expect(find.textContaining('remote image(s) blocked'), findsOneWidget);
         expect(
           find.textContaining('ceo@mt-co.tz'),
