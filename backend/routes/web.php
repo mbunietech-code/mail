@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\JobController;
 use App\Http\Controllers\Admin\PolicyController;
 use App\Http\Controllers\Admin\ProviderProfileController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\AppDownloadController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Middleware\Admin\EnsureAdminSession;
 use App\Http\Middleware\Admin\RequireAdminReauth;
@@ -19,6 +20,9 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::redirect('/', '/admin');
+
+// Android app download for employees: the newest uploaded APK.
+Route::get('apps/apk', [AppDownloadController::class, 'latestApk'])->name('apps.apk');
 
 // Email links (invitation, password reset). Tokens travel in the URL fragment.
 Route::middleware('throttle:auth-public')->prefix('app')->name('onboarding.')->group(function () {
