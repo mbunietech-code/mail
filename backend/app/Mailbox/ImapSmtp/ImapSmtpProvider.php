@@ -567,10 +567,41 @@ class ImapSmtpProvider implements MailProvider
 
     public function createFolder(string $path): void
     {
+        self::assertFolderName($path);
+        $this->imap('create', fn () => $this->mailbox()->folders()->create($path));
+    }
+
+    public function renameFolder(string $from, string $to): void
+    {
+        self::assertFolderName($to);
+        $folder = $this->folder($from);
+        $this->imap('rename', fn () => $folder->move($to));
+    }
+
+    public function deleteFolder(string $path, ?string $moveMessagesTo = null): void
+    {
+        $folder = $this->folder($path);
+        if ($moveMessagesTo !== null) {
+            $this->folder($moveMessagesTo); // must exist
+        }
+        $this->imap('delete', function () use ($folder, $moveMessagesTo) {
+            if ($moveMessagesTo !== null) {
+                $folder->select(true);
+                if ($folder->messages()->count() > 0) {
+                    $folder->messages()->move($moveMessagesTo, true);
+                }
+            }
+            // Some servers refuse to delete the selected mailbox.
+            $this->mailbox()->folders()->find('INBOX')?->select(true);
+            $folder->delete();
+        });
+    }
+
+    private static function assertFolderName(string $path): void
+    {
         if ($path === '' || mb_strlen($path) > 100 || preg_match('/[\x00-\x1F\x7F*%]/', $path)) {
             throw ProviderError::of(ProviderErrorCode::NotSupported, 'Invalid folder name.');
         }
-        $this->imap('create', fn () => $this->mailbox()->folders()->create($path));
     }
 
     // ---- Sending ------------------------------------------------------------------

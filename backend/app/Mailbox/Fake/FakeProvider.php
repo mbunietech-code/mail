@@ -198,5 +198,27 @@ class FakeProvider implements MailProvider
         $this->messages[$path] = [];
     }
 
+    public function renameFolder(string $from, string $to): void
+    {
+        $this->guard('renameFolder');
+        $info = $this->folders[$from] ?? throw ProviderError::of(ProviderErrorCode::MailboxGone, 'Folder not found.');
+        unset($this->folders[$from]);
+        $this->folders[$to] = new FolderInfo($to, $to, $info->role, $info->delimiter);
+        $this->messages[$to] = $this->messages[$from] ?? [];
+        unset($this->messages[$from]);
+    }
+
+    public function deleteFolder(string $path, ?string $moveMessagesTo = null): void
+    {
+        $this->guard('deleteFolder');
+        if (! isset($this->folders[$path])) {
+            throw ProviderError::of(ProviderErrorCode::MailboxGone, 'Folder not found.');
+        }
+        if ($moveMessagesTo !== null) {
+            $this->messages[$moveMessagesTo] = ($this->messages[$moveMessagesTo] ?? []) + ($this->messages[$path] ?? []);
+        }
+        unset($this->folders[$path], $this->messages[$path]);
+    }
+
     public function disconnect(): void {}
 }

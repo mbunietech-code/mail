@@ -7,11 +7,13 @@ import 'package:intl/intl.dart';
 
 import '../../core/providers.dart';
 import '../../shared/avatar.dart';
+import '../../shared/brand_logo.dart';
 import '../../shared/motion.dart';
 import '../../shared/widgets.dart';
 import '../compose/compose_screen.dart';
 import '../reader/reader_screen.dart';
 import 'account_switcher.dart';
+import 'folder_actions.dart';
 import 'mailbox_providers.dart';
 import 'models.dart';
 
@@ -898,19 +900,7 @@ class MailSidebar extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
           child: Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  Icons.mail,
-                  color: theme.colorScheme.onPrimary,
-                  size: 20,
-                ),
-              ),
+              const MbunieMailLogo(size: 36),
               const SizedBox(width: 12),
               Flexible(
                 child: Text(
@@ -951,21 +941,48 @@ class MailSidebar extends ConsumerWidget {
               onTap: () => ref.invalidate(foldersProvider(account!.id)),
             ),
           ],
-          data: (list) => [
-            for (final f in _ordered(list))
-              _NavItem(
-                icon: _folderIcon(f.role, false),
-                selectedIcon: _folderIcon(f.role, true),
-                label: f.label,
-                count: f.unread,
-                selected: f.id == current?.id,
-                onTap: () {
-                  ref.read(selectedFolderIdProvider.notifier).select(f.id);
-                  ref.read(selectedMessageIdProvider.notifier).select(null);
-                  closeDrawer();
-                },
+          data: (list) {
+            Widget item(MailFolder f) => _NavItem(
+              icon: _folderIcon(f.role, false),
+              selectedIcon: _folderIcon(f.role, true),
+              label: f.label,
+              count: f.unread,
+              selected: f.id == current?.id,
+              onTap: () {
+                ref.read(selectedFolderIdProvider.notifier).select(f.id);
+                ref.read(selectedMessageIdProvider.notifier).select(null);
+                closeDrawer();
+              },
+              onManage: f.role == 'custom'
+                  ? () => manageFolder(context, ref, account!.id, f)
+                  : null,
+            );
+            final ordered = _ordered(list);
+            return [
+              for (final f in ordered.where((f) => f.role != 'custom')) item(f),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 4, 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Folders',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'New folder',
+                      icon: const Icon(Icons.add),
+                      onPressed: () => createFolder(context, ref, account!.id),
+                    ),
+                  ],
+                ),
               ),
-          ],
+              for (final f in ordered.where((f) => f.role == 'custom')) item(f),
+            ];
+          },
         ),
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
@@ -1026,6 +1043,7 @@ class _NavItem extends StatelessWidget {
     this.selectedIcon,
     this.count = 0,
     this.selected = false,
+    this.onManage,
   });
   final IconData icon;
   final IconData? selectedIcon;
@@ -1033,6 +1051,9 @@ class _NavItem extends StatelessWidget {
   final int count;
   final bool selected;
   final VoidCallback onTap;
+
+  /// Rename/delete menu for custom folders (also on long press).
+  final VoidCallback? onManage;
 
   @override
   Widget build(BuildContext context) {
@@ -1042,6 +1063,8 @@ class _NavItem extends StatelessWidget {
       selected: selected,
       button: true,
       label: count > 0 ? '$label, $count unread' : label,
+      onLongPress: onManage,
+      onLongPressHint: onManage == null ? null : 'Folder options',
       excludeSemantics: true,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 1),
@@ -1055,6 +1078,7 @@ class _NavItem extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(28),
             onTap: onTap,
+            onLongPress: onManage,
             child: SizedBox(
               height: 48,
               child: Row(
@@ -1088,7 +1112,15 @@ class _NavItem extends StatelessWidget {
                         fontSize: 13,
                       ),
                     ),
-                  const SizedBox(width: 20),
+                  if (onManage != null)
+                    IconButton(
+                      tooltip: 'Folder options',
+                      visualDensity: VisualDensity.compact,
+                      icon: Icon(Icons.more_vert, size: 20, color: fg),
+                      onPressed: onManage,
+                    )
+                  else
+                    const SizedBox(width: 20),
                 ],
               ),
             ),

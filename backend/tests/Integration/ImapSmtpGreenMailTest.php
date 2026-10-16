@@ -209,6 +209,29 @@ class ImapSmtpGreenMailTest extends TestCase
         $this->assertSame('sent', collect($mailbox->listFolders())->firstWhere('path', 'Sent')?->role);
     }
 
+    public function test_rename_and_delete_folder_moves_messages_to_trash(): void
+    {
+        $mailbox = $this->provider();
+        $paths = fn () => collect($mailbox->listFolders())->pluck('path')->all();
+        if (! in_array('Trash', $paths(), true)) {
+            $mailbox->createFolder('Trash');
+        }
+        $name = 'Proj'.Str::random(5);
+        $mailbox->createFolder($name);
+        $message = new OutgoingMessage(new Address('test1@mt.co.tz'), [new Address('x@example.org')], [], [], 'Filed '.Str::random(5), null, 'body', Str::ulid().'@mt.co.tz');
+        $mailbox->appendToFolder($name, (new MimeComposer)->compose($message));
+        $trashBefore = $mailbox->folderStatus('Trash')->messages;
+
+        $mailbox->renameFolder($name, $name.'X');
+        $this->assertContains($name.'X', $paths());
+        $this->assertNotContains($name, $paths());
+        $this->assertSame(1, $mailbox->folderStatus($name.'X')->messages);
+
+        $mailbox->deleteFolder($name.'X', 'Trash');
+        $this->assertNotContains($name.'X', $paths());
+        $this->assertSame($trashBefore + 1, $mailbox->folderStatus('Trash')->messages);
+    }
+
     public function test_search_with_hostile_input_is_safe(): void
     {
         // Quotes and backslashes are escaped by the library; control characters are refused earlier.

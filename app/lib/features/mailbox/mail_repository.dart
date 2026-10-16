@@ -36,6 +36,15 @@ class MailRepository {
           .map((e) => MailFolder.fromJson((e as Map).cast<String, dynamic>()))
           .toList();
 
+  Future<void> createFolder(String accountId, String name) =>
+      api.postJson('accounts/$accountId/folders', {'name': name});
+
+  Future<void> renameFolder(String folderId, String name) =>
+      api.patchJson('folders/$folderId', {'name': name});
+
+  /// The server moves the folder's messages to Trash before deleting it.
+  Future<void> deleteFolder(String folderId) => api.delete('folders/$folderId');
+
   Future<MessagePage> messages(
     String folderId, {
     String? cursor,

@@ -343,6 +343,20 @@ class GmailProvider implements MailProvider
         $this->post('/labels', ['name' => $path, 'labelListVisibility' => 'labelShow', 'messageListVisibility' => 'show']);
     }
 
+    public function renameFolder(string $from, string $to): void
+    {
+        if ($to === '' || mb_strlen($to) > 100 || preg_match('/[\x00-\x1F\x7F]/', $to)) {
+            throw ProviderError::of(ProviderErrorCode::NotSupported, 'Invalid label name.');
+        }
+        $this->request('PATCH', '/labels/'.rawurlencode($from), ['name' => $to]);
+    }
+
+    /** Gmail labels do not hold mail: deleting one leaves the messages in place. */
+    public function deleteFolder(string $path, ?string $moveMessagesTo = null): void
+    {
+        $this->request('DELETE', '/labels/'.rawurlencode($path), []);
+    }
+
     public function disconnect(): void {}
 
     // ---- HTTP ---------------------------------------------------------------------

@@ -68,5 +68,10 @@ interface MailProvider
 
     public function createFolder(string $path): void;
 
+    public function renameFolder(string $from, string $to): void;
+
+    /** Deletes a folder; with $moveMessagesTo, its messages are moved there first. */
+    public function deleteFolder(string $path, ?string $moveMessagesTo = null): void;
+
     public function disconnect(): void;
 }

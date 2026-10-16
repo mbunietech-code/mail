@@ -77,6 +77,8 @@ Route::prefix('v1')->group(function () {
             // ---- Mail ----------------------------------------------------------------
             $ulid = '[0-9A-Za-z]{26}';
             Route::post('accounts/{id}/folders', [FolderController::class, 'store'])->where('id', $ulid)->name('folders.store');
+            Route::patch('folders/{id}', [FolderController::class, 'update'])->where('id', $ulid)->name('folders.update');
+            Route::delete('folders/{id}', [FolderController::class, 'destroy'])->where('id', $ulid)->name('folders.destroy');
             Route::get('accounts/{id}/search', SearchController::class)->where('id', $ulid)->name('accounts.search');
             Route::post('accounts/{id}/sync', [SyncController::class, 'trigger'])->where('id', $ulid)->name('accounts.sync');
             Route::get('sync/status', [SyncController::class, 'status'])->name('sync.status');
