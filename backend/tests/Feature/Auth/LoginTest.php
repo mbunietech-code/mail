@@ -45,6 +45,17 @@ class LoginTest extends TestCase
         $this->assertTrue(AuditLog::query()->where('action', 'auth.user.provisioned')->exists());
     }
 
+    public function test_first_sign_in_requires_two_step_setup_under_the_default_policy(): void
+    {
+        config(['mbuniemail.mfa.required_for_all' => true]); // the shipped default
+
+        $response = $this->postJson('/api/v1/auth/login', ['email' => 'new.starter@mt.co.tz', 'password' => self::PASSWORD])
+            ->assertOk()->assertJsonPath('status', 'mfa_enrollment_required')->assertJsonMissingPath('access_token');
+
+        $this->freshRequest()->postJson('/api/v1/auth/mfa/enroll', [], $this->bearer($response->json('mfa_token')))
+            ->assertOk()->assertJsonStructure(['secret', 'otpauth_uri']);
+    }
+
     public function test_signing_in_again_refreshes_the_mailbox_instead_of_linking_it_twice(): void
     {
         $user = $this->makeUser();

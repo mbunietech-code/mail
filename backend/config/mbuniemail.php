@@ -106,8 +106,9 @@ return [
 
     'mfa' => [
         'issuer' => env('MBUNIEMAIL_MFA_ISSUER', 'MbunieMail'),
-        // Admin roles always require MFA regardless of this flag (SRS FR-AUTH-008).
-        'required_for_all' => (bool) env('MBUNIEMAIL_MFA_REQUIRED_FOR_ALL', false),
+        // Everyone sets up two-step verification at first sign-in; admins can relax
+        // this in Policies, but admin roles always require MFA (SRS FR-AUTH-008).
+        'required_for_all' => (bool) env('MBUNIEMAIL_MFA_REQUIRED_FOR_ALL', true),
         'window' => 1,
         'recovery_code_count' => 10,
     ],

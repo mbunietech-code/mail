@@ -31,6 +31,7 @@
         <env name="HASH_DRIVER" value="bcrypt"/>
         <env name="LOG_STACK" value="single"/>
         <env name="MBUNIEMAIL_HIBP_ENABLED" value="true"/>
+        <!-- Off so most tests get tokens directly; MFA tests turn the policy on. -->
         <env name="MBUNIEMAIL_MFA_REQUIRED_FOR_ALL" value="false"/>
         <env name="TRUSTED_PROXIES" value=""/>
         <env name="MBUNIEMAIL_ALLOW_LOOPBACK_PROVIDERS" value="true"/>

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/errors.dart';
 import 'auth_controller.dart';
@@ -35,6 +36,22 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
       setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Hands the setup key to an authenticator on this device (otpauth:// link).
+  Future<void> _openAuthenticator(String uri) async {
+    var opened = false;
+    try {
+      opened = await launchUrl(
+        Uri.parse(uri),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (_) {}
+    if (!opened && mounted) {
+      setState(
+        () => _error = 'No authenticator app found on this phone. Install one, or type the key.',
+      );
     }
   }
 
@@ -90,7 +107,7 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
           ),
         ],
       ),
-      MfaPending(enrolling: true, :final secret?) => Column(
+      MfaPending(enrolling: true, :final secret?, :final otpauthUri) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
@@ -98,9 +115,19 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 8),
-          const Text(
-            'In the app choose “Enter a setup key”, type this key, then enter the 6-digit code it shows.',
+          Text(
+            otpauthUri == null
+                ? 'In the app choose “Enter a setup key”, type this key, then enter the 6-digit code it shows.'
+                : 'If the authenticator is on this phone, open it below. Otherwise choose “Enter a setup key” in the app and type this key. Then enter the 6-digit code it shows.',
           ),
+          if (otpauthUri != null) ...[
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              icon: const Icon(Icons.open_in_new),
+              label: const Text('Open authenticator app'),
+              onPressed: () => _openAuthenticator(otpauthUri),
+            ),
+          ],
           const SizedBox(height: 12),
           Card(
             child: ListTile(

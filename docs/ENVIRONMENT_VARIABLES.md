@@ -39,7 +39,7 @@ All values are read through `config/*.php`, so they keep working after `php arti
 | `MBUNIEMAIL_REFRESH_IDLE_DAYS` | 7 | Idle timeout |
 | `MBUNIEMAIL_RESET_TTL` | 30 | Password-reset token lifetime (minutes) |
 | `MBUNIEMAIL_HIBP_ENABLED` | true | Breached-password check (k-anonymity, only 5 hash characters leave the server; fails open and logs if the service is unreachable) |
-| `MBUNIEMAIL_MFA_REQUIRED_FOR_ALL` | false | Default org-wide MFA policy (admins always require MFA). Admins can override it at runtime (`settings` table) |
+| `MBUNIEMAIL_MFA_REQUIRED_FOR_ALL` | true | Default org-wide MFA policy: every user sets up two-step verification at first sign-in (admins always require MFA). Admins can override it at runtime (`settings` table) |
 | `MBUNIEMAIL_AUDIT_RETENTION_DAYS` | 730 | Audit entries older than this are archived and pruned monthly (`mbuniemail:prune-audit`) |
 | `MBUNIEMAIL_AUDIT_MAINT_CONNECTION` / `DB_MAINT_USERNAME` / `DB_MAINT_PASSWORD` | `mariadb` / — / — | Production: `audit_maint` plus the `mbuniemail_maint` credentials (the only account allowed to delete audit rows) |
 | `MBUNIEMAIL_DEACTIVATED_RETENTION_DAYS` | 30 | Deactivated users' data is deleted after this, unless `legal_hold_until` is set |
