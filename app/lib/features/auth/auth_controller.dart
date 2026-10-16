@@ -78,6 +78,7 @@ class AuthController extends Notifier<AuthState> {
     } on AppFailure catch (e) {
       if (e.isAuthLost) {
         await api.setSession(null);
+        await ref.read(mailCacheProvider).clear();
         state = SignedOut(e.message);
       } else {
         state = SignedIn(
@@ -160,6 +161,7 @@ class AuthController extends Notifier<AuthState> {
       // Signing out locally must always work, even offline.
     }
     await api.setSession(null);
+    await ref.read(mailCacheProvider).clear(); // no mail left on the device
     state = const SignedOut();
   }
 

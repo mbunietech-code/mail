@@ -1,8 +1,11 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/mailbox/mail_repository.dart';
 import 'api/api_client.dart';
 import 'config.dart';
+import 'storage/mail_cache.dart';
 import 'storage/token_store.dart';
 
 /// Composition root. Tests override [configProvider], [tokenStoreProvider] and
@@ -20,8 +23,19 @@ final apiClientProvider = Provider<ApiClient>(
   ),
 );
 
+/// Encrypted offline copy of loaded mail. Widget tests cannot reach the keystore
+/// or file-system plugins (their calls never complete), so they get memory.
+final mailCacheProvider = Provider<MailCache>(
+  (ref) => Platform.environment.containsKey('FLUTTER_TEST')
+      ? MemoryMailCache()
+      : EncryptedFileMailCache(),
+);
+
 final mailRepositoryProvider = Provider<MailRepository>(
-  (ref) => MailRepository(ref.watch(apiClientProvider)),
+  (ref) => MailRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(mailCacheProvider),
+  ),
 );
 
 /// Company email domains (public). Only these may sign in or be linked. An empty list

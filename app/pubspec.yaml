@@ -48,6 +48,8 @@ dependencies:
   local_auth: ^3.0.2
   crypto: ^3.0.7
   local_auth_android: ^2.3.0
+  cryptography: ^2.9.0
+  path_provider: ^2.1.6
 
 dev_dependencies:
   flutter_test:

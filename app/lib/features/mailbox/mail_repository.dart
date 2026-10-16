@@ -1,16 +1,51 @@
 import 'dart:typed_data';
 
+import 'dart:async';
+
 import '../../core/api/api_client.dart';
+import '../../core/errors.dart';
 import '../../core/ids.dart';
+import '../../core/storage/mail_cache.dart';
 import 'models.dart';
 
-/// All mail endpoints (docs/API_SPECIFICATION.md §3–11).
+/// All mail endpoints (docs/API_SPECIFICATION.md §3–11). Reads of accounts, folders,
+/// the first page of each folder and opened messages are kept in [cache] and served
+/// from it when offline.
 class MailRepository {
-  MailRepository(this.api);
+  MailRepository(this.api, [this.cache]);
   final ApiClient api;
+  final MailCache? cache;
+
+  /// After a request finds no connection, cached reads skip the network for a
+  /// short while: each failed attempt can take as long as the connect timeout.
+  static const _offlineGrace = Duration(seconds: 20);
+  DateTime? _offlineAt;
+
+  Future<Map<String, dynamic>> _cached(
+    String key,
+    Future<Map<String, dynamic>> Function() fetch,
+  ) async {
+    final offlineAt = _offlineAt;
+    if (offlineAt != null &&
+        DateTime.now().difference(offlineAt) < _offlineGrace) {
+      final saved = await cache?.read(key);
+      if (saved != null) return saved;
+    }
+    try {
+      final fresh = await fetch();
+      _offlineAt = null;
+      unawaited(cache?.write(key, fresh));
+      return fresh;
+    } on AppFailure catch (e) {
+      if (!e.isOffline) rethrow;
+      _offlineAt = DateTime.now();
+      return await cache?.read(key) ?? (throw e);
+    }
+  }
 
   Future<List<MailAccount>> accounts() async =>
-      ((await api.getJson('accounts'))['data'] as List)
+      ((await _cached('accounts', () => api.getJson('accounts')))['data']
+              as List)
           .map((e) => MailAccount.fromJson((e as Map).cast<String, dynamic>()))
           .toList();
 
@@ -32,7 +67,11 @@ class MailRepository {
       api.postJson('accounts/$accountId/sync');
 
   Future<List<MailFolder>> folders(String accountId) async =>
-      ((await api.getJson('accounts/$accountId/folders'))['data'] as List)
+      ((await _cached(
+                'folders:$accountId',
+                () => api.getJson('accounts/$accountId/folders'),
+              ))['data']
+              as List)
           .map((e) => MailFolder.fromJson((e as Map).cast<String, dynamic>()))
           .toList();
 
@@ -51,10 +90,14 @@ class MailRepository {
     int limit = 50,
     bool unreadOnly = false,
   }) async {
-    final j = await api.getJson(
+    Future<Map<String, dynamic>> fetch() => api.getJson(
       'folders/$folderId/messages',
       query: {'limit': limit, 'cursor': ?cursor, if (unreadOnly) 'unread': 1},
     );
+    // Only the first page is kept; older pages need a connection.
+    final j = cursor == null && !unreadOnly
+        ? await _cached('messages:$folderId', fetch)
+        : await fetch();
     return MessagePage(
       (j['data'] as List)
           .map(
@@ -78,9 +121,12 @@ class MailRepository {
 
   Future<MessageDetail> message(String id, {bool allowImages = false}) async =>
       MessageDetail.fromJson(
-        await api.getJson(
-          'messages/$id',
-          query: allowImages ? {'images': 'allow'} : null,
+        await _cached(
+          'message:$id${allowImages ? ':images' : ''}',
+          () => api.getJson(
+            'messages/$id',
+            query: allowImages ? {'images': 'allow'} : null,
+          ),
         ),
       );
 
