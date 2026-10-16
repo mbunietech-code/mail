@@ -2,7 +2,12 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Mailbox\Fake\FakeProvider;
+use App\Mailbox\ProviderErrorCode;
+use App\Mailbox\ProviderFactory;
 use App\Models\AuditLog;
+use App\Models\EmailAccount;
+use App\Models\EncryptedCredential;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Settings;
@@ -24,6 +29,61 @@ class LoginTest extends TestCase
 
         $this->freshRequest()->getJson('/api/v1/me', $this->bearer($response->json('access_token')))
             ->assertOk()->assertJsonPath('email', $user->email);
+    }
+
+    public function test_first_sign_in_with_a_company_mailbox_creates_the_user_and_links_the_mailbox(): void
+    {
+        $this->postJson('/api/v1/auth/login', ['email' => 'Asha.Mussa@mt.co.tz', 'password' => self::PASSWORD])
+            ->assertOk()->assertJsonPath('status', 'authenticated')->assertJsonPath('user.email', 'asha.mussa@mt.co.tz');
+
+        $user = User::query()->where('email', 'asha.mussa@mt.co.tz')->sole();
+        $this->assertSame('Asha Mussa', $user->name);
+        $this->assertTrue($user->hasRole(Role::EMPLOYEE));
+        $account = EmailAccount::query()->where('user_id', $user->id)->sole();
+        $this->assertSame('asha.mussa@mt.co.tz', $account->email_address);
+        $this->assertSame(1, EncryptedCredential::query()->where('email_account_id', $account->id)->count());
+        $this->assertTrue(AuditLog::query()->where('action', 'auth.user.provisioned')->exists());
+    }
+
+    public function test_signing_in_again_refreshes_the_mailbox_instead_of_linking_it_twice(): void
+    {
+        $user = $this->makeUser();
+        $this->login($user)->assertOk();
+        EmailAccount::query()->where('user_id', $user->id)->update(['status' => 'auth_failed', 'last_error_code' => 'AUTH_FAILED']);
+
+        $this->freshRequest()->login($user)->assertOk();
+
+        $account = EmailAccount::query()->where('user_id', $user->id)->sole();
+        $this->assertSame('active', $account->status);
+        $this->assertNull($account->last_error_code);
+    }
+
+    public function test_rejected_mailbox_password_creates_no_user(): void
+    {
+        $this->postJson('/api/v1/auth/login', ['email' => 'newcomer@mt.co.tz', 'password' => 'wrong-mailbox-pass'])
+            ->assertStatus(401)->assertJsonPath('code', 'INVALID_CREDENTIALS');
+
+        $this->assertFalse(User::query()->where('email', 'newcomer@mt.co.tz')->exists());
+    }
+
+    public function test_provider_outage_at_sign_in_is_reported_and_creates_nothing(): void
+    {
+        ProviderFactory::fake((new FakeProvider)->failOn('verify', ProviderErrorCode::Throttled));
+
+        $this->postJson('/api/v1/auth/login', ['email' => 'newcomer@mt.co.tz', 'password' => self::PASSWORD])
+            ->assertStatus(503)->assertJsonPath('code', 'PROVIDER_THROTTLED');
+
+        $this->assertFalse(User::query()->where('email', 'newcomer@mt.co.tz')->exists());
+    }
+
+    public function test_reauthentication_checks_the_mailbox_password(): void
+    {
+        $tokens = $this->tokensFor($this->makeUser());
+
+        $this->freshRequest()->postJson('/api/v1/auth/reauth', ['password' => 'not-the-mailbox-pass'], $this->bearer($tokens['access_token']))
+            ->assertStatus(401);
+        $this->freshRequest()->postJson('/api/v1/auth/reauth', ['password' => self::PASSWORD], $this->bearer($tokens['access_token']))
+            ->assertNoContent();
     }
 
     /** SEC-T33: unknown and known accounts produce identical failures. */

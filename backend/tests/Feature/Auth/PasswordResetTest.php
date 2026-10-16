@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use App\Notifications\ResetPasswordNotification;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
@@ -54,7 +55,8 @@ class PasswordResetTest extends TestCase
         $this->freshRequest()->getJson('/api/v1/me', $this->bearer($tokens['access_token']))->assertStatus(401);
         $this->freshRequest()->postJson('/api/v1/auth/password/reset', $this->payload($user, $token))
             ->assertStatus(422)->assertJsonPath('code', 'RESET_INVALID');
-        $this->freshRequest()->login($user, self::NEW_PASSWORD)->assertOk();
+        // App sign-in uses the mailbox password; the local one (admin panel) is what changes.
+        $this->assertTrue(Hash::check(self::NEW_PASSWORD, $user->fresh()->password));
     }
 
     /** SEC-T05 */

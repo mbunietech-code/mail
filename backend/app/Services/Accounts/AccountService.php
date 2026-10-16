@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Security\CredentialVault;
 use App\Security\Secret;
 use App\Services\Audit\AuditLogger;
+use App\Services\Auth\VerifiedMailbox;
 use App\Support\CompanyDomains;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
@@ -74,6 +75,41 @@ class AccountService
         $provider->disconnect();
 
         $this->audit->record('account.linked', 'success', $user, 'email_account', $account->id, ['provider' => $profile->key, 'folders' => count($folders)]);
+
+        return $account;
+    }
+
+    /**
+     * The mailbox a user signed in with: created on first sign-in, otherwise its stored
+     * password is refreshed (the user may have changed it at the provider).
+     */
+    public function linkVerified(User $user, VerifiedMailbox $mailbox, Secret $password): EmailAccount
+    {
+        $account = $user->emailAccounts()->where('email_address', $mailbox->email)->first();
+        $isNew = $account === null;
+
+        $account = DB::transaction(function () use ($user, $mailbox, $password, $account) {
+            $account ??= new EmailAccount;
+            $account->forceFill([
+                'user_id' => $user->id,
+                'provider_profile_id' => $mailbox->profile->id,
+                'email_address' => $mailbox->email,
+                'status' => EmailAccount::STATUS_ACTIVE,
+                'capabilities' => $mailbox->provider->capabilities()->toArray(),
+                'last_error_code' => null,
+                'backoff_attempts' => 0,
+                'next_sync_at' => now(),
+            ])->save();
+
+            $this->storeCredential($account, 'password', ['password' => $password->reveal()]);
+            $this->syncFolders($account, $mailbox->folders);
+
+            return $account;
+        });
+
+        if ($isNew) {
+            $this->audit->record('account.linked', 'success', $user, 'email_account', $account->id, ['provider' => $mailbox->profile->key, 'folders' => count($mailbox->folders), 'via' => 'sign_in']);
+        }
 
         return $account;
     }

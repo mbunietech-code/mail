@@ -281,9 +281,10 @@ class MessageApiTest extends TestCase
     {
         $this->seedInbox(2);
 
-        $this->getJson('/api/v1/sync/status', $this->auth)->assertOk()
-            ->assertJsonPath('accounts.0.id', $this->account->id)
-            ->assertJsonPath('accounts.0.status', 'active')
-            ->assertJsonPath('accounts.0.unread_inbox', 2);
+        $accounts = collect($this->getJson('/api/v1/sync/status', $this->auth)->assertOk()->json('accounts'));
+        $mine = $accounts->firstWhere('id', $this->account->id);
+
+        $this->assertSame('active', $mine['status']);
+        $this->assertSame(2, $mine['unread_inbox']);
     }
 }

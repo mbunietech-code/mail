@@ -13,6 +13,7 @@ use App\Models\EmailAccount;
 use App\Models\OAuthState;
 use App\Models\User;
 use App\Security\CredentialVault;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\DB;
@@ -85,6 +86,12 @@ class GmailOAuthTest extends TestCase
         return $f;
     }
 
+    /** Gmail accounts only (users also have the mailbox they signed in with). */
+    private function gmailAccounts(): Builder
+    {
+        return EmailAccount::query()->whereHas('providerProfile', fn ($q) => $q->where('driver', 'gmail'));
+    }
+
     public function test_gmail_is_unavailable_when_feature_flag_is_off(): void
     {
         config(['mbuniemail.gmail.enabled' => false]);
@@ -129,7 +136,7 @@ class GmailOAuthTest extends TestCase
         $this->freshRequest()->postJson('/api/v1/accounts/gmail/complete', ['completion' => $fragment['completion']], $auth)
             ->assertCreated()->assertJsonPath('provider', 'gmail')->assertJsonPath('email_address', 'someone@mt.co.tz');
 
-        $account = EmailAccount::query()->sole();
+        $account = $this->gmailAccounts()->sole();
         $this->assertSame($user->id, $account->user_id);
         $raw = (array) DB::table('encrypted_credentials')->where('email_account_id', $account->id)->first();
         $this->assertStringNotContainsString('1//test-refresh', implode('', array_map('strval', $raw)));
@@ -158,7 +165,7 @@ class GmailOAuthTest extends TestCase
         [, $otherSession] = $this->signedInSession($initiator);
         $this->freshRequest()->postJson('/api/v1/accounts/gmail/complete', ['completion' => $completion2], $otherSession)->assertStatus(422);
 
-        $this->assertSame(0, EmailAccount::query()->count());
+        $this->assertSame(0, $this->gmailAccounts()->count());
         $this->assertGreaterThanOrEqual(2, AuditLog::query()->where('action', 'account.gmail.completion_rejected')->count());
     }
 
@@ -205,7 +212,7 @@ class GmailOAuthTest extends TestCase
         $this->freshRequest()->deleteJson("/api/v1/accounts/{$id}", [], $auth)->assertNoContent();
 
         Http::assertSent(fn (Request $r) => $r->url() === GoogleTokenManager::REVOKE_URL && $r['token'] === '1//test-refresh');
-        $this->assertSame(0, EmailAccount::query()->count());
+        $this->assertSame(0, $this->gmailAccounts()->count());
     }
 
     public function test_provider_refreshes_expired_tokens_and_maps_api_errors(): void
@@ -214,7 +221,7 @@ class GmailOAuthTest extends TestCase
         [, $auth] = $this->signedInSession();
         $completion = self::fragment($this->hitCallback($this->start($auth)['state']))['completion'];
         $this->freshRequest()->postJson('/api/v1/accounts/gmail/complete', ['completion' => $completion], $auth)->assertCreated();
-        $account = EmailAccount::query()->sole();
+        $account = $this->gmailAccounts()->sole();
 
         $this->travel(2)->hours(); // access token expired
         $this->resetHttpFakes([
@@ -257,7 +264,7 @@ class GmailOAuthTest extends TestCase
         $this->resetHttpFakes(['oauth2.googleapis.com/token' => Http::response(['error' => 'invalid_grant'], 400)]);
 
         try {
-            (new GmailProvider(EmailAccount::query()->sole(), app(GoogleTokenManager::class)))->verify();
+            (new GmailProvider($this->gmailAccounts()->sole(), app(GoogleTokenManager::class)))->verify();
             $this->fail('expected auth failure');
         } catch (ProviderError $e) {
             $this->assertSame(ProviderErrorCode::AuthFailed, $e->errorCode);

@@ -8,6 +8,7 @@ use App\Notifications\InvitationNotification;
 use App\Notifications\ResetPasswordNotification;
 use App\Services\Auth\InvitationService;
 use Illuminate\Notifications\AnonymousNotifiable;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -80,6 +81,7 @@ class OnboardingPagesTest extends TestCase
             ->assertSessionHas('done');
 
         $this->freshRequest()->getJson('/api/v1/me', $this->bearer($tokens['access_token']))->assertStatus(401);
-        $this->freshRequest()->login($user->fresh(), self::NEW_PASSWORD)->assertOk();
+        // App sign-in uses the mailbox password; the local one (admin panel) is what changes.
+        $this->assertTrue(Hash::check(self::NEW_PASSWORD, $user->fresh()->password));
     }
 }

@@ -10,6 +10,7 @@ use App\Models\EmailAccount;
 use App\Models\EncryptedCredential;
 use App\Models\Folder;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -40,6 +41,12 @@ class AccountLinkTest extends TestCase
         return $this->freshRequest()->postJson('/api/v1/accounts', ['email_address' => $email, 'password' => self::MAILBOX_PASSWORD, 'display_name' => 'Dev'], $auth);
     }
 
+    /** The mailbox these tests link (users also have the mailbox they signed in with). */
+    private function linked(): Builder
+    {
+        return EmailAccount::query()->where('email_address', 'developer@mt.co.tz');
+    }
+
     public function test_linking_verifies_stores_encrypted_credential_and_caches_folders(): void
     {
         [$user, $auth] = $this->userWithReauth();
@@ -51,15 +58,15 @@ class AccountLinkTest extends TestCase
             ->assertJsonMissingPath('password');
         $this->assertStringNotContainsString(self::MAILBOX_PASSWORD, $response->getContent());
 
-        $account = EmailAccount::query()->sole();
+        $account = $this->linked()->sole();
         $this->assertSame($user->id, $account->user_id);
 
         // No plaintext anywhere in the credential row.
         $raw = DB::table('encrypted_credentials')->where('email_account_id', $account->id)->first();
         $this->assertStringNotContainsString(self::MAILBOX_PASSWORD, json_encode(array_map(fn ($v) => is_string($v) ? bin2hex($v) : $v, (array) $raw)).implode('', (array) $raw));
-        $this->assertSame(1, EncryptedCredential::query()->count());
+        $this->assertSame(1, EncryptedCredential::query()->where('email_account_id', $account->id)->count());
 
-        $this->assertEqualsCanonicalizing(['inbox', 'sent', 'drafts', 'trash', 'spam'], Folder::query()->pluck('role')->all());
+        $this->assertEqualsCanonicalizing(['inbox', 'sent', 'drafts', 'trash', 'spam'], Folder::query()->where('email_account_id', $account->id)->pluck('role')->all());
         $this->assertTrue(AuditLog::query()->where('action', 'account.linked')->exists());
     }
 
@@ -79,23 +86,23 @@ class AccountLinkTest extends TestCase
 
     public function test_rejected_mailbox_password_returns_actionable_error_and_creates_nothing(): void
     {
-        $this->provider->failOn('verify', ProviderErrorCode::AuthFailed);
         [, $auth] = $this->userWithReauth();
+        $this->provider->failOn('verify', ProviderErrorCode::AuthFailed);
 
         $this->link($auth)->assertStatus(422)
             ->assertJsonPath('code', 'PROVIDER_AUTH_FAILED')
             ->assertJsonPath('detail', ProviderErrorCode::AuthFailed->remedy());
 
-        $this->assertSame(0, EmailAccount::query()->count());
-        $this->assertSame(0, EncryptedCredential::query()->count());
+        $this->assertSame(0, $this->linked()->count());
+        $this->assertSame(1, EncryptedCredential::query()->count()); // only the sign-in mailbox
         $this->assertTrue(AuditLog::query()->where('action', 'account.verification_failed')->exists());
     }
 
     /** SEC-T50 */
     public function test_provider_outage_is_reported_distinctly(): void
     {
-        $this->provider->failOn('verify', ProviderErrorCode::Throttled);
         [, $auth] = $this->userWithReauth();
+        $this->provider->failOn('verify', ProviderErrorCode::Throttled);
 
         $this->link($auth)->assertStatus(503)->assertJsonPath('code', 'PROVIDER_THROTTLED')->assertHeader('Retry-After');
     }
@@ -111,8 +118,8 @@ class AccountLinkTest extends TestCase
     /** Linking cannot be used as an oracle to brute-force mailbox passwords. */
     public function test_link_attempts_are_rate_limited(): void
     {
-        $this->provider->failOn('verify', ProviderErrorCode::AuthFailed);
         [, $auth] = $this->userWithReauth();
+        $this->provider->failOn('verify', ProviderErrorCode::AuthFailed);
 
         for ($i = 0; $i < 5; $i++) {
             $this->link($auth)->assertStatus(422);
@@ -140,8 +147,9 @@ class AccountLinkTest extends TestCase
             $this->freshRequest()->json($method, $uri, $request[2] ?? [], $otherAuth)->assertStatus(404);
         }
 
-        $this->freshRequest()->getJson('/api/v1/accounts', $otherAuth)->assertOk()->assertJsonCount(0, 'data');
-        $this->assertSame(1, EmailAccount::query()->count());
+        // The other user sees only their own sign-in mailbox.
+        $this->freshRequest()->getJson('/api/v1/accounts', $otherAuth)->assertOk()->assertJsonCount(1, 'data')->assertJsonMissing(['id' => $id]);
+        $this->assertSame(1, $this->linked()->count());
     }
 
     /** SEC-T47 */
@@ -189,9 +197,9 @@ class AccountLinkTest extends TestCase
 
         $this->freshRequest()->deleteJson("/api/v1/accounts/{$id}", [], $auth)->assertNoContent();
 
-        $this->assertSame(0, EmailAccount::query()->count());
-        $this->assertSame(0, EncryptedCredential::query()->count());
-        $this->assertSame(0, Folder::query()->count());
+        $this->assertSame(0, $this->linked()->count());
+        $this->assertSame(0, EncryptedCredential::query()->where('email_account_id', $id)->count());
+        $this->assertSame(0, Folder::query()->where('email_account_id', $id)->count());
         $this->assertTrue(AuditLog::query()->where('action', 'account.unlinked')->exists());
     }
 }

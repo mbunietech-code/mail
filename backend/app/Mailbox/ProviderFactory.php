@@ -3,6 +3,7 @@
 namespace App\Mailbox;
 
 use App\Mailbox\Contracts\MailProvider;
+use App\Mailbox\Fake\FakeProvider;
 use App\Mailbox\Gmail\GmailProvider;
 use App\Mailbox\Gmail\GoogleTokenManager;
 use App\Mailbox\ImapSmtp\ImapSmtpProvider;
@@ -21,18 +22,22 @@ class ProviderFactory
 {
     private static ?MailProvider $fake = null;
 
+    private static ?string $fakePassword = null;
+
     public function __construct(
         private readonly CredentialVault $vault,
         private readonly HostGuard $guard,
         private readonly GoogleTokenManager $googleTokens,
     ) {}
 
-    public static function fake(?MailProvider $provider): void
+    /** With $password, credential checks accept only that password (others fail with AUTH_FAILED). */
+    public static function fake(?MailProvider $provider, ?string $password = null): void
     {
         if ($provider !== null && ! app()->environment('testing')) {
             throw new LogicException('Fake providers are only available in tests.');
         }
         self::$fake = $provider;
+        self::$fakePassword = $provider !== null ? $password : null;
     }
 
     public function forAccount(EmailAccount $account): MailProvider
@@ -54,6 +59,10 @@ class ProviderFactory
     /** For verifying a credential before an account exists. */
     public function forImapCredentials(ProviderProfile $profile, string $email, Secret $password): MailProvider
     {
+        if (self::$fake !== null && self::$fakePassword !== null && ! hash_equals(self::$fakePassword, $password->reveal())) {
+            return (new FakeProvider)->failOn('verify', ProviderErrorCode::AuthFailed);
+        }
+
         return self::$fake ?? $this->imap($profile, $email, $password);
     }
 

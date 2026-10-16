@@ -80,13 +80,14 @@ Request:
 { "email": "developer@mt.co.tz", "password": "••••••••", "device": { "id": "01J…", "platform": "android", "name": "Pixel 8" } }
 ```
 Validation: `email` required, valid, max 254 characters. `password` required, max 256. `device.platform` must be one of `android` or `windows`.
+`password` is the **mailbox password**: the backend checks it by logging in to the domain's provider (IMAP, e.g. Hostinger). There is no separate MbunieMail password for the app. On the first successful sign-in the user is created (role `employee`); every successful sign-in links that mailbox or refreshes its stored password. `POST /auth/reauth` with `password` checks the mailbox password the same way.
 200 (MFA not enabled and not required):
 ```json
 { "status": "authenticated", "access_token": "…", "access_expires_in": 900, "refresh_token": "…", "refresh_expires_in": 2592000, "user": { "id": "01J…", "name": "Developer", "email": "developer@mt.co.tz", "mfa_enabled": false } }
 ```
 200 (MFA required): `{ "status": "mfa_required", "mfa_token": "…", "expires_in": 300 }`
 200 (enrollment required by policy): `{ "status": "mfa_enrollment_required", "mfa_token": "…" }`
-Errors: 401 `INVALID_CREDENTIALS` (generic, same for an unknown user), 423, 429.
+Errors: 401 `INVALID_CREDENTIALS` (generic: wrong mailbox password, or no mail server for the domain), 403 `ACCOUNT_DISABLED`, 423, 429; provider outages as 502/503/504 `PROVIDER_*`.
 
 ### POST /auth/mfa/verify · mfa-pending · 🅰 `auth.mfa.success|failed`
 `{ "code": "123456" }` or `{ "recovery_code": "xxxx-xxxx-xx" }`, giving 200 with the same body as authenticated login. Errors: 401 `INVALID_MFA_CODE`, 429.

@@ -46,27 +46,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  Future<void> _forgot() async {
-    if (!_email.text.contains('@')) {
-      setState(() => _error = 'Enter your email first.');
-      return;
-    }
-    try {
-      await ref.read(apiClientProvider).postPublic('auth/password/forgot', {
-        'email': _email.text.trim(),
-      });
-    } on AppFailure {
-      // Same message either way (no account enumeration).
-    }
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('If the account exists, a reset link has been sent.'),
-        ),
-      );
-    }
-  }
-
   void _useDomain(String d) {
     final local = _email.text.split('@').first.trim();
     _email.text = '$local@$d';
@@ -196,6 +175,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     ],
                                     decoration: InputDecoration(
                                       labelText: 'Password',
+                                      helperText:
+                                          'The password you use for your email',
                                       prefixIcon: const Icon(
                                         Icons.lock_outline,
                                       ),
@@ -262,11 +243,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                             )
                                           : const Text('Sign in'),
                                     ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  TextButton(
-                                    onPressed: _busy ? null : _forgot,
-                                    child: const Text('Forgot password?'),
                                   ),
                                 ],
                               ),

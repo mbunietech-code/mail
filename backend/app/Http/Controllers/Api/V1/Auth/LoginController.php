@@ -7,14 +7,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Device;
 use App\Models\RefreshSession;
 use App\Models\User;
+use App\Security\Secret;
 use App\Services\Audit\AuditLogger;
 use App\Services\Auth\LoginThrottle;
+use App\Services\Auth\MailboxSignIn;
 use App\Services\Auth\MfaService;
 use App\Services\Auth\TokenService;
 use App\Support\CompanyDomains;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 
 class LoginController extends Controller
 {
@@ -23,6 +24,7 @@ class LoginController extends Controller
         private readonly MfaService $mfa,
         private readonly LoginThrottle $throttle,
         private readonly AuditLogger $audit,
+        private readonly MailboxSignIn $signIn,
     ) {}
 
     public function login(Request $request): JsonResponse
@@ -49,35 +51,30 @@ class LoginController extends Controller
             throw ApiException::forbidden('DOMAIN_NOT_ALLOWED', 'Use your company email address ('.CompanyDomains::display().').');
         }
 
-        $user = User::query()->where('email', $email)->first();
+        // The company mailbox is the identity: its provider checks the password (no
+        // local password). The answer is the same for unknown and wrong-password cases.
+        $password = new Secret($data['password']);
+        $mailbox = $this->signIn->verify($email, $password);
 
-        // Always perform one hash verification so response time does not reveal
-        // whether the account exists (risk R-17).
-        if ($user === null) {
-            Hash::check($data['password'], self::dummyHash());
-            $valid = false;
-        } else {
-            $valid = Hash::check($data['password'], $user->password);
-        }
-
-        if (! $valid) {
+        if ($mailbox === null) {
+            $user = User::query()->where('email', $email)->first();
             $this->throttle->recordFailure($email, $ip);
             $this->audit->record('auth.login.failed', 'failure', $user, 'user', $user?->id, ['reason' => 'invalid_credentials']);
 
             throw new ApiException('INVALID_CREDENTIALS', 401, 'Incorrect email or password.');
         }
 
+        $user = $this->signIn->userFor($email);
+
         if (! $user->isActive()) {
+            $mailbox->provider->disconnect();
             $this->audit->record('auth.login.failed', 'denied', $user, 'user', $user->id, ['reason' => 'status_'.$user->status]);
 
             throw ApiException::forbidden('ACCOUNT_DISABLED', 'This account is not active. Contact your administrator.');
         }
 
         $this->throttle->recordSuccess($email, $ip);
-
-        if (Hash::needsRehash($user->password)) {
-            $user->forceFill(['password' => $data['password']])->save();
-        }
+        $this->signIn->link($user, $mailbox, $password);
 
         $device = isset($data['device']) ? $this->upsertDevice($user, $data['device']) : null;
 
@@ -153,12 +150,5 @@ class LoginController extends Controller
             ['user_id' => $user->id, 'client_device_id' => $device['id']],
             ['platform' => $device['platform'], 'name' => $device['name'] ?? null, 'last_seen_at' => now()],
         );
-    }
-
-    private static function dummyHash(): string
-    {
-        static $hash = null;
-
-        return $hash ??= Hash::make('mbuniemail-timing-equaliser');
     }
 }

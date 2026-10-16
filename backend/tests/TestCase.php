@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Mailbox\Fake\FakeProvider;
 use App\Mailbox\ProviderFactory;
 use App\Models\User;
 use App\Security\KeyRing;
@@ -42,6 +43,9 @@ abstract class TestCase extends BaseTestCase
         $this->app->forgetInstance(KeyRing::class);
 
         $this->resetHttpFakes();
+
+        // Sign-in checks the password with the mail provider; the fake accepts only PASSWORD.
+        ProviderFactory::fake(new FakeProvider, self::PASSWORD);
     }
 
     /**
