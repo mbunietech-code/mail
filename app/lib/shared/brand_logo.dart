@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -9,6 +10,20 @@ class MbunieMailLogo extends StatelessWidget {
   const MbunieMailLogo({super.key, this.size = 96});
 
   final double size;
+
+  /// The logo as a square PNG on white, e.g. for a notification's large icon
+  /// (Android crops it to the launcher shape).
+  static Future<Uint8List> png(int size) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final area = Size.square(size.toDouble());
+    canvas.drawRect(Offset.zero & area, Paint()..color = Colors.white);
+    _LogoPainter().paint(canvas, area);
+    final image = await recorder.endRecording().toImage(size, size);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    return bytes!.buffer.asUint8List();
+  }
 
   @override
   Widget build(BuildContext context) {

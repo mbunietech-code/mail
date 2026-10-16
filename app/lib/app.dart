@@ -14,6 +14,7 @@ import 'features/compose/compose_screen.dart';
 import 'features/mailbox/home_shell.dart';
 import 'features/reader/reader_screen.dart';
 import 'features/settings/settings_screen.dart';
+import 'shared/new_mail_banner.dart';
 
 final themeModeProvider = NotifierProvider<ThemeModeController, ThemeMode>(
   ThemeModeController.new,
@@ -119,6 +120,11 @@ class _MbunieMailAppState extends ConsumerState<MbunieMailApp> {
       darkTheme: AppTheme.dark(),
       themeMode: ref.watch(themeModeProvider),
       routerConfig: ref.watch(routerProvider),
+      builder: (context, child) => NewMailBannerHost(
+        alerts: ref.read(pushServiceProvider).incoming,
+        onOpen: (id) => ref.read(routerProvider).push('/message/$id'),
+        child: child ?? const SizedBox.shrink(),
+      ),
     );
   }
 }

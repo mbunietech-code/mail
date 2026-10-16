@@ -84,8 +84,11 @@ class PushNotificationTest extends TestCase
         Http::assertSent(fn (Request $r) => str_contains($r->url(), 'fcm.googleapis.com/v1/projects/test-project/messages:send')
             && $r['message']['token'] === 'live-token'
             && $r->hasHeader('Authorization', 'Bearer ya29.test')
-            && $r['message']['data'] === ['account_id' => $this->account->id, 'message_id' => $message->id]
-            && $r['message']['android']['notification']['visibility'] === 'PRIVATE'
+            && $r['message']['data']['account_id'] === $this->account->id
+            && $r['message']['data']['message_id'] === $message->id
+            && $r['message']['data']['visibility'] === 'private'
+            && ! isset($r['message']['notification']) // data-only: the app draws it
+            && $r['message']['android']['priority'] === 'HIGH'
             && ! str_contains(json_encode($r->data()), 'Salary'));
         $this->assertSame('live-token', $live->refresh()->push_token);
         $this->assertNull($dead->refresh()->push_token);

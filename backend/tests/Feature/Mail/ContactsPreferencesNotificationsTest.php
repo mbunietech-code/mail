@@ -55,12 +55,14 @@ class ContactsPreferencesNotificationsTest extends TestCase
         $encoded = json_encode($private);
         $this->assertStringNotContainsString('Salary', $encoded);
         $this->assertStringNotContainsString('Confidential', $encoded);
-        $this->assertSame('From Finance Team', $private['body']);
+        $this->assertSame('Finance Team', $private['title']);
+        $this->assertSame('Sent you a new message', $private['body']);
         $this->assertSame('private', $private['visibility']);
-        $this->assertSame(['account_id', 'message_id'], array_keys($private['data']));
+        $this->assertSame(['account_id', 'message_id', 'sender', 'count', 'received_at'], array_keys($private['data']));
 
         $optedIn = NewMailPayload::build($message, showSubject: true);
-        $this->assertStringContainsString('Salary revisions 2027', $optedIn['body']);
+        $this->assertSame('Salary revisions 2027', $optedIn['body']);
+        $this->assertSame('Salary revisions 2027', $optedIn['data']['subject']);
         $this->assertStringNotContainsString('Confidential', json_encode($optedIn), 'snippets are never sent');
     }
 }

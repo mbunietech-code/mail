@@ -45,16 +45,14 @@ class FcmSender
             ->post("https://fcm.googleapis.com/v1/projects/{$creds['project_id']}/messages:send", [
                 'message' => [
                     'token' => $deviceToken,
-                    'notification' => ['title' => $payload['title'], 'body' => $payload['body']],
-                    'data' => $payload['data'],
+                    // Data-only: the app renders the notification (logo, brand colour,
+                    // lock-screen privacy) instead of the plain system default.
+                    'data' => $payload['data'] + ['title' => $payload['title'], 'body' => $payload['body'], 'visibility' => $payload['visibility']],
                     'android' => [
                         'priority' => 'HIGH',
-                        'notification' => [
-                            'channel_id' => 'new_mail',
-                            'visibility' => strtoupper($payload['visibility']),
-                            // One notification per account, replaced as new mail arrives.
-                            'tag' => 'mail-'.$payload['data']['account_id'],
-                        ],
+                        'ttl' => '86400s',
+                        // One pending alert per account; newer mail replaces it.
+                        'collapse_key' => 'mail-'.$payload['data']['account_id'],
                     ],
                 ],
             ]);
