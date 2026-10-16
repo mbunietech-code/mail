@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +13,8 @@ import '../../shared/widgets.dart';
 import '../mailbox/mail_repository.dart';
 import '../mailbox/mailbox_providers.dart';
 import '../mailbox/models.dart';
+import 'formatting_toolbar.dart';
+import 'rich_text_controller.dart';
 
 /// What the composer starts with (new, reply, reply-all, forward).
 class ComposeDraft {
@@ -83,7 +84,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   late final _cc = TextEditingController();
   late final _bcc = TextEditingController();
   late final _subject = TextEditingController(text: widget.draft.subject);
-  late final _body = TextEditingController(text: widget.draft.quoted);
+  late final _body = RichTextController(text: widget.draft.quoted);
   final _attachments = <({String id, String name, String? warning})>[];
   bool _showCc = false;
   bool _sending = false;
@@ -141,14 +142,6 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
 
   /// Plain-text composer (rich text is a later enhancement): escaped and wrapped into
   /// paragraphs; the server sanitises again and generates the text/plain part.
-  static String _toHtml(String text) => const LineSplitter()
-      .convert(text)
-      .map(
-        (l) =>
-            l.isEmpty ? '<br>' : '<div>${const HtmlEscape().convert(l)}</div>',
-      )
-      .join();
-
   Future<void> _pickFiles() async {
     final files = await FilePicker.pickFiles();
     if (files.isEmpty) return;
@@ -196,7 +189,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
         'cc': _split(_cc.text),
         'bcc': _split(_bcc.text),
         'subject': _subject.text.trim(),
-        'html': _toHtml(_body.text),
+        'html': _body.html,
         'text': _body.text,
         'attachment_ids': _attachments.map((a) => a.id).toList(),
         'mode': d.mode,
@@ -339,6 +332,8 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                       setState(() => _includeOriginalAttachments = v),
                   title: const Text('Include original attachments'),
                 ),
+              FormattingToolbar(controller: _body),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _body,
                 minLines: 12,
