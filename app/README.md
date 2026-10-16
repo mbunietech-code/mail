@@ -51,7 +51,7 @@ Sign the executable or MSIX with the company code-signing certificate before dis
 
 ## Not yet implemented (tracked in docs/PROJECT_STATUS.md)
 - Encrypted offline cache (SQLCipher). Lists are in memory only, so a cold start offline shows the offline state.
-- Push notifications (FCM) and Windows toasts. The backend payload builder exists.
+- Windows toasts (Android push via FCM is done).
 - Rich-text composer. Composing is plain text, converted to safe HTML.
 - Deep links for password reset, invitation and Google OAuth completion. Reset links currently open in a browser.
 - Gmail connection UI (feature-flagged off on the server), app lock (PIN or biometric), and optional screenshot blocking.
