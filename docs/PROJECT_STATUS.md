@@ -35,7 +35,11 @@ Last updated: 2026-10-14 (Phase 6 in progress, branch `phase-6-app`). Legend: �
 | 6 Flutter | App: sign-in with MFA/enrolment/recovery codes, secure token storage, single-flight refresh, adaptive 1/2/3-pane mailbox, account switcher, folders, paginated list, star/read, search, sanitised reader with image consent, link confirmation and phishing banners, attachments, composer (reply/all/forward, Cc/Bcc, autocomplete, uploads, idempotent send), accounts (link/unlink with reauth), settings (sessions, theme, privacy), offline/provider banners, Windows shortcuts | ✅ | 15 tests; `flutter analyze` clean |
 | 6 Flutter | Android push (FCM): token registration, new-mail notifications after sync | ✅ | Verified on a real device 2026-10-16. Needs `google-services.json` and `MBUNIEMAIL_FCM_CREDENTIALS` (not committed) |
 | 6 Flutter | Sign-in with the company mailbox (Hostinger) password; auto-provisioned employees | ✅ | Verified on a real device 2026-10-16 |
-| 6 Flutter | Encrypted offline cache, Windows toasts, rich-text composer, deep links, Gmail connect UI, app lock | ⬜ | Documented in app/README.md |
+| 6 Flutter | Folder rename/delete (custom folders; delete moves mail to Trash) | ✅ | Backend + app; IMAP verified against GreenMail 2026-10-16 |
+| 6 Flutter | App lock: PIN (PBKDF2 hash in keystore storage), fingerprint, lock timeout, attempt limits | ✅ | Verified on a real device 2026-10-16 |
+| 6 Flutter | Encrypted offline cache (AES-256-GCM, keystore key, wiped on sign-out) | ✅ | Verified offline on a real device 2026-10-16 |
+| 6 Flutter | Rich-text composer (bold/italic/underline/strike, lists, auto-links) | ✅ | Verified on a real device 2026-10-16 |
+| 6 Flutter | Windows toasts, deep links, Gmail connect UI | ⬜ | Documented in app/README.md |
 | 6 Flutter | Invitation and password-reset web pages (email links) | ✅ | Backend `/app/invite`, `/app/reset-password` |
 | 6 Flutter | Windows build | ⛔ | Requires a Windows build machine |
 | 7 Admin | Admin panel: sign-in with mandatory TOTP and enrolment, reauth for writes, employees (invite, suspend, deactivate, roles, sessions, MFA reset, mailbox enable/disable), audit (filter, CSV export, chain verify), health, policies (MFA, attachments, domains), mail servers, failed jobs | ✅ | No mail-content access anywhere |
