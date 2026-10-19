@@ -29,8 +29,9 @@ Tests use an in-memory fake backend (`test/fakes.dart`). They never contact a se
 2. Create `android/key.properties` (gitignored) with `storePassword`, `keyPassword`, `keyAlias=upload` and `storeFile=/home/<you>/keys/mbuniemail-upload.jks`, and wire it into `signingConfigs` in `android/app/build.gradle.kts`. The template currently signs release builds with the **debug** key, so those builds must not be distributed.
 3. Build:
    ```bash
-   flutter build apk --release --dart-define=API_BASE_URL=https://mail-api.mt.co.tz
+   flutter build apk --release --build-number=$(git rev-list --count HEAD) --dart-define=API_BASE_URL=https://email.mbunie.tech
    ```
+   `--build-number` gives every build a higher `versionCode`. Without it each APK is `versionCode=1`, Android treats it as a reinstall, and launchers such as Infinix XOS drop the home-screen icon. Commit before building so the number goes up.
 
 **Windows** (on a Windows 10/11 PC with Visual Studio 2022 "Desktop development with C++"):
 ```powershell
