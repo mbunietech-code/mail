@@ -63,6 +63,12 @@ android {
             signingConfig = signingConfigs.findByName("release")
                 ?: signingConfigs.getByName("debug")
         }
+        // Same key for debug builds, so `flutter run` can update an installed
+        // release build in place instead of uninstalling it (and its data).
+        debug {
+            signingConfig = signingConfigs.findByName("release")
+                ?: signingConfigs.getByName("debug")
+        }
     }
 }
 
