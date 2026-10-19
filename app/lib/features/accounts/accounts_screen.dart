@@ -91,7 +91,7 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
                     child: Text(
-                      'Tap a mailbox to use it. You can link up to 5 company mailboxes.',
+                      'Tap a mailbox to use it. You can link as many company mailboxes as you need.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),

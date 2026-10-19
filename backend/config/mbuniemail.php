@@ -90,7 +90,7 @@ return [
     ],
 
     'accounts' => [
-        'max_per_user' => (int) env('MBUNIEMAIL_MAX_ACCOUNTS_PER_USER', 5),
+        'max_per_user' => (int) env('MBUNIEMAIL_MAX_ACCOUNTS_PER_USER', 1000),
         // Linking attempts per user per 10 minutes — stops the endpoint being used as a
         // password-guessing oracle against the mail provider.
         'link_attempts_per_10_minutes' => 5,
