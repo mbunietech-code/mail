@@ -27,6 +27,29 @@ final messageDetailProvider =
           .message(key.id, allowImages: key.images);
     });
 
+/// Loads the newest messages of the open folder in the background, one at a
+/// time, so tapping one shows it at once instead of waiting on the mail server.
+/// The server reads them without marking them as read.
+final messagePrefetchProvider = Provider<void>((ref) {
+  const count = 5;
+  final folder = ref.watch(currentFolderProvider);
+  if (folder == null) return;
+  final ids = ref.watch(
+    messageListProvider(folder.id)
+        .select((s) => s.items.take(count).map((m) => m.id).join(',')),
+  );
+  () async {
+    for (final id in ids.split(',').where((id) => id.isNotEmpty)) {
+      if (!ref.mounted) return;
+      try {
+        await ref.read(messageDetailProvider((id: id, images: false)).future);
+      } catch (_) {
+        // Opening the message will retry and show the error.
+      }
+    }
+  }();
+});
+
 /// Full-screen reader (narrow layouts).
 class ReaderScreen extends StatelessWidget {
   const ReaderScreen({super.key, required this.messageId});
