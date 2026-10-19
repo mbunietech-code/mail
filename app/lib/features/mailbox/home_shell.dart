@@ -57,12 +57,46 @@ class HomeShell extends ConsumerStatefulWidget {
 
 class _HomeShellState extends ConsumerState<HomeShell> {
   bool _fabExtended = true;
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    // Ask the server for fresh mail whenever the app is opened, brought back
+    // or switched to another mailbox, instead of waiting for the next
+    // scheduled sync. The list keeps showing cached mail meanwhile.
+    ref.listenManual<String?>(
+      currentAccountProvider.select((a) => a?.id),
+      (_, id) => _syncNow(id),
+      fireImmediately: true,
+    );
+    _lifecycle = AppLifecycleListener(
+      onResume: () => _syncNow(ref.read(currentAccountProvider)?.id),
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  Future<void> _syncNow(String? accountId) async {
+    if (accountId == null) return;
+    try {
+      await ref.read(mailRepositoryProvider).syncNow(accountId);
+      ref.read(syncStatusProvider.notifier).poll();
+    } catch (_) {
+      // Rate limits or no connection: the cached list stays on screen.
+    }
+  }
 
   void _compose() => context.push('/compose', extra: const ComposeDraft());
 
   @override
   Widget build(BuildContext context) {
     final accounts = ref.watch(accountsProvider);
+    ref.watch(messagePrefetchProvider);
     return LayoutBuilder(
       builder: (context, c) {
         final width = c.maxWidth;

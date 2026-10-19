@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/errors.dart';
 import '../core/providers.dart';
+import '../features/auth/auth_controller.dart';
 
 /// Shared states (FR-UI-003): every data screen shows loading, empty, offline and error
 /// with a retry action.
@@ -80,9 +81,11 @@ Future<T?> withReauth<T>(
     return await action();
   } on AppFailure catch (e) {
     if (e.code != 'REAUTH_REQUIRED' || !context.mounted) rethrow;
+    final auth = ref.read(authControllerProvider);
     final password = await showDialog<String>(
       context: context,
-      builder: (_) => const _ReauthDialog(),
+      builder: (_) =>
+          _ReauthDialog(email: auth is SignedIn ? auth.email : null),
     );
     if (password == null || password.isEmpty) return null;
     await ref.read(apiClientProvider).postJson('auth/reauth', {
@@ -92,8 +95,12 @@ Future<T?> withReauth<T>(
   }
 }
 
+/// Re-authentication checks the password of the mailbox the user signed in
+/// with, so the dialog names it: right after linking another mailbox, people
+/// otherwise type that new mailbox's password here.
 class _ReauthDialog extends StatefulWidget {
-  const _ReauthDialog();
+  const _ReauthDialog({this.email});
+  final String? email;
   @override
   State<_ReauthDialog> createState() => _ReauthDialogState();
 }
@@ -110,13 +117,29 @@ class _ReauthDialogState extends State<_ReauthDialog> {
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: const Text('Confirm it’s you'),
-    content: TextField(
-      controller: _ctrl,
-      obscureText: true,
-      autofocus: true,
-      autofillHints: const [AutofillHints.password],
-      decoration: const InputDecoration(labelText: 'Your MbunieMail password'),
-      onSubmitted: (v) => Navigator.pop(context, v),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (widget.email != null) ...[
+          Text(
+            'Enter the password for ${widget.email}, the mailbox you signed in with.',
+          ),
+          const SizedBox(height: 16),
+        ],
+        TextField(
+          controller: _ctrl,
+          obscureText: true,
+          autofocus: true,
+          autofillHints: const [AutofillHints.password],
+          decoration: InputDecoration(
+            labelText: widget.email == null
+                ? 'Your MbunieMail password'
+                : 'Password for ${widget.email}',
+          ),
+          onSubmitted: (v) => Navigator.pop(context, v),
+        ),
+      ],
     ),
     actions: [
       TextButton(

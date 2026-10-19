@@ -536,5 +536,95 @@ void main() {
         expect(find.text('old@retired.example'), findsNothing);
       },
     );
+    testWidgets('opening the mailbox asks the server for fresh mail', (
+      tester,
+    ) async {
+      mailRoutes();
+      var syncs = 0;
+      http.on('POST', 'accounts/A1/sync', (r) {
+        syncs++;
+        return FakeReply(202, {'status': 'queued'});
+      });
+      await pumpApp(tester);
+
+      expect(find.text('Quarterly plan'), findsOneWidget);
+      expect(syncs, 1);
+    });
+    testWidgets('the newest messages are loaded before they are opened', (
+      tester,
+    ) async {
+      mailRoutes();
+      final fetched = <String, int>{};
+      for (final id in ['M1', 'M2']) {
+        http.on('GET', 'messages/$id', (r) {
+          fetched[id] = (fetched[id] ?? 0) + 1;
+          return FakeReply(200, {
+            'id': id,
+            'thread_key': 'T$id',
+            'subject': 'Quarterly plan',
+            'headers': {
+              'from': {'email': 'ceo@mt.co.tz', 'name': 'CEO'},
+              'to': [
+                {'email': 'developer@mt.co.tz'},
+              ],
+              'cc': [],
+              'date': '2026-10-14T08:00:00Z',
+            },
+            'body': {
+              'html': null,
+              'text': 'See the attached plan.',
+              'remote_images_blocked': 0,
+              'remote_images_allowed': false,
+              'inline_images': {},
+            },
+            'attachments': [],
+            'flags': {'is_flagged': false},
+            'security': {
+              'external_sender': false,
+              'lookalike_domain': false,
+              'display_name_spoof': false,
+              'reply_to_differs': false,
+              'spf': 'pass',
+              'dmarc': 'pass',
+            },
+          });
+        });
+      }
+      await pumpApp(tester);
+      expect(fetched, {'M1': 1, 'M2': 1});
+
+      await tester.tap(find.text('Quarterly plan'));
+      await tester.pumpAndSettle();
+      expect(find.text('See the attached plan.'), findsOneWidget);
+      expect(fetched['M1'], 1, reason: 'opened from the prefetched copy');
+    });
+    testWidgets(
+      'compose without a linked mailbox explains instead of failing silently',
+      (tester) async {
+        mailRoutes();
+        http.on('GET', 'accounts', (r) => FakeReply(200, {'data': []}));
+        var sent = 0;
+        http.on('POST', 'outbox/send', (r) {
+          sent++;
+          return FakeReply(202, {'id': 'O1', 'status': 'queued'});
+        });
+        await pumpApp(tester);
+
+        await tester.tap(find.text('Compose'));
+        await tester.pumpAndSettle();
+        expect(find.text('No mailbox linked'), findsOneWidget);
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'To'),
+          'partner@example.org',
+        );
+        await tester.tap(find.byTooltip('Send (Ctrl+Enter)'));
+        await tester.pump();
+        expect(
+          find.text('Link your company mailbox before sending.'),
+          findsOneWidget,
+        );
+        expect(sent, 0);
+      },
+    );
   });
 }

@@ -141,8 +141,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     ),
                                     validator: (v) {
                                       final e = (v ?? '').trim();
-                                      if (!e.contains('@'))
+                                      if (!e.contains('@')) {
                                         return 'Enter your work email';
+                                      }
                                       if (!emailInDomains(e, domains)) {
                                         return 'Use your company email (${domains.map((d) => '@$d').join(', ')})';
                                       }
