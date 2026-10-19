@@ -57,6 +57,20 @@ class SyncTest extends TestCase
         $this->assertSame(2, $account->folders()->where('role', 'inbox')->value('unread_count'));
     }
 
+    public function test_fresh_sign_in_is_polled_often_before_its_token_is_used(): void
+    {
+        $this->account->user->createToken('phone');
+        $this->sync();
+        $this->assertLessThanOrEqual(2, (int) round(now()->diffInMinutes($this->account->refresh()->next_sync_at)));
+    }
+
+    public function test_signed_out_users_are_polled_on_the_dormant_schedule(): void
+    {
+        $this->account->user->tokens()->delete();
+        $this->sync();
+        $this->assertSame(60, (int) round(now()->diffInMinutes($this->account->refresh()->next_sync_at)));
+    }
+
     /** FR-SYNC-004 */
     public function test_repeated_sync_never_duplicates(): void
     {

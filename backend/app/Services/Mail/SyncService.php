@@ -188,10 +188,12 @@ class SyncService
     private function intervalMinutes(EmailAccount $account): int
     {
         $cfg = config('mbuniemail.sync');
+        // A token issued at sign-in counts as use before its first request, so a
+        // fresh sign-in is not polled on the dormant hourly schedule.
         $lastUse = PersonalAccessToken::query()
             ->where('tokenable_type', (new User)->getMorphClass())
             ->where('tokenable_id', $account->user_id)
-            ->max('last_used_at');
+            ->max(DB::raw('COALESCE(last_used_at, created_at)'));
 
         return match (true) {
             $lastUse !== null && now()->subDays(7)->lt($lastUse) => (int) $cfg['inbox_interval_minutes'],
