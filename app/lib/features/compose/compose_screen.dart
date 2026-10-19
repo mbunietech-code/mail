@@ -176,7 +176,20 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
 
   Future<void> _send() async {
     final account = _from();
-    if (account == null || !_form.currentState!.validate()) return;
+    if (account == null) {
+      // Never fail silently: there is no mailbox to send from yet.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Link your company mailbox before sending.'),
+          action: SnackBarAction(
+            label: 'Link',
+            onPressed: () => context.push('/accounts?add=1'),
+          ),
+        ),
+      );
+      return;
+    }
+    if (!_form.currentState!.validate()) return;
     setState(() {
       _sending = true;
       _attempted = true;
@@ -259,6 +272,25 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              if (account == null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Material(
+                    color: Theme.of(context).colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(16),
+                    child: ListTile(
+                      leading: const Icon(Icons.link_off),
+                      title: const Text('No mailbox linked'),
+                      subtitle: const Text(
+                        'Link your company mailbox to send email.',
+                      ),
+                      trailing: TextButton(
+                        onPressed: () => context.push('/accounts?add=1'),
+                        child: const Text('Link'),
+                      ),
+                    ),
+                  ),
+                ),
               _FromField(
                 value: _fromId ?? account?.id,
                 locked: _attempted || widget.draft.mode != 'new',

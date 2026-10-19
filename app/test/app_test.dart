@@ -536,5 +536,33 @@ void main() {
         expect(find.text('old@retired.example'), findsNothing);
       },
     );
+    testWidgets(
+      'compose without a linked mailbox explains instead of failing silently',
+      (tester) async {
+        mailRoutes();
+        http.on('GET', 'accounts', (r) => FakeReply(200, {'data': []}));
+        var sent = 0;
+        http.on('POST', 'outbox/send', (r) {
+          sent++;
+          return FakeReply(202, {'id': 'O1', 'status': 'queued'});
+        });
+        await pumpApp(tester);
+
+        await tester.tap(find.text('Compose'));
+        await tester.pumpAndSettle();
+        expect(find.text('No mailbox linked'), findsOneWidget);
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'To'),
+          'partner@example.org',
+        );
+        await tester.tap(find.byTooltip('Send (Ctrl+Enter)'));
+        await tester.pump();
+        expect(
+          find.text('Link your company mailbox before sending.'),
+          findsOneWidget,
+        );
+        expect(sent, 0);
+      },
+    );
   });
 }
