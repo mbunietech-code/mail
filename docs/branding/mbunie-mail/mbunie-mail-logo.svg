@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 320" width="1160" height="320">
+  <style>@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&amp;display=swap');
+  .w{font-family:Poppins,Montserrat,'Segoe UI',Arial,sans-serif;font-weight:700;letter-spacing:-2px}</style>
+  <g transform="translate(10,-2) scale(0.5)">
+  <defs>
+    <linearGradient id="g1" gradientUnits="userSpaceOnUse" x1="75" y1="0" x2="345" y2="0">
+      <stop offset="0" stop-color="#2B2F86"/><stop offset=".5" stop-color="#2B2F86"/>
+      <stop offset=".78" stop-color="#1FA3E6"/><stop offset="1" stop-color="#1B6FC0"/>
+    </linearGradient>
+    <linearGradient id="g2" gradientUnits="userSpaceOnUse" x1="300" y1="0" x2="570" y2="0">
+      <stop offset="0" stop-color="#2B2F86"/><stop offset=".42" stop-color="#2B2F86"/>
+      <stop offset=".72" stop-color="#1FA3E6"/><stop offset="1" stop-color="#2B2F86"/>
+    </linearGradient>
+    <linearGradient id="g3" gradientUnits="userSpaceOnUse" x1="520" y1="0" x2="670" y2="0">
+      <stop offset="0" stop-color="#1FA3E6"/><stop offset=".55" stop-color="#2B2F86"/>
+      <stop offset="1" stop-color="#2B2F86"/>
+    </linearGradient>
+  </defs>
+  <g id="mark">
+    <!-- envelope accent (replaces the corner pennant) -->
+    <rect x="78" y="132" width="98" height="70" rx="12" fill="#1FA3E6"/>
+    <rect x="64" y="122" width="98" height="70" rx="12" fill="#2B2F86"/>
+    <path d="M76 136 L113 166 L150 136" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- strokes -->
+    <polyline points="270,195 270,235 150,430 150,470" fill="none" stroke="url(#g1)" stroke-width="150" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="495,195 495,235 375,430 375,470" fill="none" stroke="url(#g2)" stroke-width="150" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M670 265 L670 470 A75 75 0 0 1 520 470 L520 432 Q520 418 529 407 Z" fill="url(#g3)"/>
+  </g>
+  </g>
+  <text class="w" x="385" y="212" font-size="128"><tspan fill="#2B2F86">mbunie</tspan><tspan fill="#1FA3E6" dx="22">mail</tspan></text>
+  <text x="1110" y="118" font-family="Arial,sans-serif" font-weight="700" font-size="22" fill="#2B2F86">TM</text>
+</svg>
