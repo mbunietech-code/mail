@@ -37,7 +37,25 @@ Tests use an in-memory fake backend (`test/fakes.dart`). They never contact a se
 ```powershell
 flutter build windows --release --dart-define=API_BASE_URL=https://mail-api.mt.co.tz
 ```
-Sign the executable or MSIX with the company code-signing certificate before distribution.
+Then make the installer and the update package (IExpress, part of Windows):
+```powershell
+powershell -ExecutionPolicy Bypass -File windows\installer\build-installer.ps1
+```
+This writes `dist\MbunieMail-<version>+<build>.exe` (double-click installer for new PCs, served at `/apps/windows`) and `dist\MbunieMail-<version>+<build>-windows.zip` (what installed apps update from). Upload both to `backend/public/downloads`. The installer needs no admin rights. It installs to `%LOCALAPPDATA%\Programs\MbunieMail`, adds Start menu and desktop shortcuts, starts with Windows, and adds an Apps & features entry for uninstalling. `/Q` installs silently.
+
+Sign the executables with the company code-signing certificate before distribution. Unsigned, Windows SmartScreen warns on first run.
+
+## Automatic updates
+Installed apps update themselves from `GET /apps/latest.json` on the server, which lists the newest file in `backend/public/downloads/` per platform. To release, upload with the build number in the name:
+- Android: `MbunieMail-<version>+<build>.apk`, for example `MbunieMail-1.0.0+58.apk`
+- Windows: `MbunieMail-<version>+<build>-windows.zip` from `build-installer.ps1` (the contents of `build\windows\x64\runner\Release`)
+
+The app installs a build whose `<build>` is higher than its own, after checking its SHA-256. Always build with `--build-number` (see above). Release builds only; debug builds never update.
+- **Android** (`AppUpdater.kt`): checks every 6 hours and on start in WorkManager, so it also runs while the app is closed. It downloads in the background and installs once the app leaves the screen. On Android 12+ that is silent after the user allows *Install unknown apps* for MbunieMail (Settings → App updates); before that, or on Android 8–11, a notification asks for one tap.
+- **Windows** (`lib/core/updates`): checks every 6 hours, downloads to `%TEMP%`, and installs after the window has been hidden in the tray for 5 minutes, or when the user quits from the tray. The installer puts the app in `%LOCALAPPDATA%\Programs\MbunieMail`, which the user can write to; a copy in `Program Files` would not update.
+
+## Windows tray
+Closing the window hides MbunieMail in the notification area; it keeps syncing there. Click the tray icon to open it; right-click for *Start with Windows* (on by default, starts hidden in the tray) and *Quit MbunieMail*. Opening MbunieMail again brings back the running window instead of starting a second copy.
 
 ## Security design (summary)
 - **Tokens:** stored in `flutter_secure_storage`. On Android that's AES-GCM with an RSA-OAEP key held in the Android Keystore; on Windows it's DPAPI plus Credential Manager (verified in the 11.2.0 sources). Nothing goes in plain preferences or files. Android backup and device transfer are disabled.
