@@ -7,6 +7,21 @@
 
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
+  // One MbunieMail per user. Opening it again (shortcut, Start menu) brings the
+  // running window back, including when it is hidden in the tray; a second
+  // start with Windows (`--background`) just exits.
+  HANDLE single_instance =
+      ::CreateMutexW(nullptr, TRUE, L"MbunieMail.SingleInstance");
+  if (single_instance && ::GetLastError() == ERROR_ALREADY_EXISTS) {
+    HWND running = ::FindWindowW(L"FLUTTER_RUNNER_WIN32_WINDOW", L"MbunieMail");
+    if (running && !wcsstr(command_line, L"--background")) {
+      ::ShowWindow(running, ::IsIconic(running) ? SW_RESTORE : SW_SHOW);
+      ::SetForegroundWindow(running);
+    }
+    ::CloseHandle(single_instance);
+    return EXIT_SUCCESS;
+  }
+
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.
   if (!::AttachConsole(ATTACH_PARENT_PROCESS) && ::IsDebuggerPresent()) {
@@ -27,7 +42,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"mbuniemail", origin, size)) {
+  if (!window.Create(L"MbunieMail", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);
@@ -39,5 +54,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   }
 
   ::CoUninitialize();
+  if (single_instance) ::CloseHandle(single_instance);
   return EXIT_SUCCESS;
 }

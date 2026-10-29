@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../app.dart';
 import '../../core/providers.dart';
+import '../../core/updates/app_updater.dart';
 import '../../shared/widgets.dart';
 import '../auth/auth_controller.dart';
 import '../lock/lock_settings.dart';
@@ -125,6 +127,8 @@ class SettingsScreen extends ConsumerWidget {
                 ),
             ],
           ),
+          const _Header('App updates'),
+          const _UpdateSettings(),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout),
@@ -134,6 +138,50 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: 24),
         ],
       ),
+    );
+  }
+}
+
+final _versionProvider = FutureProvider.autoDispose<String>((ref) async {
+  final i = await PackageInfo.fromPlatform();
+  return '${i.version} (${i.buildNumber})';
+});
+
+final _silentUpdatesProvider = FutureProvider.autoDispose<bool>(
+  (ref) => ref.watch(appUpdaterProvider).canInstallSilently(),
+);
+
+/// MbunieMail updates itself. On Android that is silent once "Install unknown
+/// apps" is allowed for it; until then every update needs one tap.
+class _UpdateSettings extends ConsumerWidget {
+  const _UpdateSettings();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final version = ref.watch(_versionProvider).value;
+    final silent = ref.watch(_silentUpdatesProvider).value ?? true;
+    return Column(
+      children: [
+        ListTile(
+          leading: const Icon(Icons.system_update_outlined),
+          title: const Text('Updates install automatically'),
+          subtitle: Text(
+            version == null ? 'MbunieMail' : 'MbunieMail $version',
+          ),
+        ),
+        if (!silent)
+          ListTile(
+            leading: const Icon(Icons.verified_user_outlined),
+            title: const Text('Allow updates without asking'),
+            subtitle: const Text(
+              'Turn on "Allow from this source" for MbunieMail.',
+            ),
+            onTap: () async {
+              await ref.read(appUpdaterProvider).openInstallSettings();
+              ref.invalidate(_silentUpdatesProvider);
+            },
+          ),
+      ],
     );
   }
 }

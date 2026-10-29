@@ -21,8 +21,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/admin');
 
-// Android app download for employees: the newest uploaded APK.
+// App downloads for employees: the newest uploaded APK, and what the apps check to update themselves.
 Route::get('apps/apk', [AppDownloadController::class, 'latestApk'])->name('apps.apk');
+Route::get('apps/windows', [AppDownloadController::class, 'latestWindowsInstaller'])->name('apps.windows');
+Route::get('apps/latest.json', [AppDownloadController::class, 'manifest'])->name('apps.manifest');
 
 // Email links (invitation, password reset). Tokens travel in the URL fragment.
 Route::middleware('throttle:auth-public')->prefix('app')->name('onboarding.')->group(function () {

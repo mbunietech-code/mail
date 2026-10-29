@@ -86,4 +86,6 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     // AppCompat themes (styles.xml) for the fingerprint dialog on Android 8.
     implementation("androidx.appcompat:appcompat:1.7.0")
+    // Self-update checks that also run while the app is closed (AppUpdater.kt).
+    implementation("androidx.work:work-runtime-ktx:2.10.1")
 }
