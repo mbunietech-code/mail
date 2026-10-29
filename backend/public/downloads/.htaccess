@@ -1,7 +1,10 @@
-# Android app downloads (APK files are uploaded to the server, not committed).
+# App downloads: Android APKs, the Windows installer and Windows update packages
+# (uploaded to the server, not committed).
 Options -Indexes
 AddType application/vnd.android.package-archive .apk
-<FilesMatch "\.apk$">
+AddType application/vnd.microsoft.portable-executable .exe
+AddType application/zip .zip
+<FilesMatch "\.(apk|exe|zip)$">
     Header set Content-Disposition "attachment"
     Header set X-Content-Type-Options "nosniff"
 </FilesMatch>
