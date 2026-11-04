@@ -21,6 +21,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/admin');
 
+// Public privacy policy (linked from Google Play and the app's settings).
+Route::view('privacy', 'privacy', ['contact' => config('mail.privacy_contact')])->name('privacy');
+
 // App downloads for employees: the newest uploaded APK, and what the apps check to update themselves.
 Route::get('apps/apk', [AppDownloadController::class, 'latestApk'])->name('apps.apk');
 Route::get('apps/windows', [AppDownloadController::class, 'latestWindowsInstaller'])->name('apps.windows');
