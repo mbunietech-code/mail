@@ -265,10 +265,15 @@ try {
 ''';
 }
 
+/// `--dart-define=STORE=play` for the Google Play build, which Play updates.
+const _fromPlayStore = String.fromEnvironment('STORE') == 'play';
+
 final appUpdaterProvider = Provider<AppUpdater>((ref) {
   if (!kReleaseMode || kIsWeb) return NoUpdater();
   final config = ref.watch(configProvider);
-  if (Platform.isAndroid) return AndroidUpdater(config);
+  if (Platform.isAndroid) {
+    return _fromPlayStore ? NoUpdater() : AndroidUpdater(config);
+  }
   if (Platform.isWindows) return WindowsUpdater(config);
   return NoUpdater();
 });

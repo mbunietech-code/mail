@@ -15,9 +15,15 @@ if (file("google-services.json").exists()) {
 // Release signing key (not committed): android/key.properties with storeFile,
 // storePassword, keyAlias and keyPassword. Without it, release builds use the
 // debug key so `flutter run --release` still works locally.
+//
+// Google Play build: `flutter build appbundle -P playStore=true --dart-define=STORE=play`.
+// It is signed with the Play upload key (android/key-playstore.properties, required)
+// and leaves out self-update, which Play policy forbids (src/playstore).
+val playStore = (findProperty("playStore") as String?) == "true"
 val keyProperties = Properties().apply {
-    val f = rootProject.file("key.properties")
+    val f = rootProject.file(if (playStore) "key-playstore.properties" else "key.properties")
     if (f.exists()) f.inputStream().use { load(it) }
+    else if (playStore) throw GradleException("Play builds need android/key-playstore.properties")
 }
 
 android {
@@ -69,6 +75,10 @@ android {
             signingConfig = signingConfigs.findByName("release")
                 ?: signingConfigs.getByName("debug")
         }
+    }
+
+    if (playStore) {
+        sourceSets.getByName("release").manifest.srcFile("src/playstore/AndroidManifest.xml")
     }
 }
 
