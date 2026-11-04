@@ -101,10 +101,11 @@ class DesktopShell with TrayListener, WindowListener {
     await _exit();
   }
 
+  // windowManager.destroy() on a hidden window crashes in flutter_windows.dll
+  // (seen on 3.47), so remove the tray icon and end the process directly.
   Future<void> _exit() async {
     await trayManager.destroy();
-    await windowManager.setPreventClose(false);
-    await windowManager.destroy();
+    exit(0);
   }
 
   @override

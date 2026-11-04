@@ -34,8 +34,20 @@ class NoUpdater extends AppUpdater {
   Future<void> start() async {}
 }
 
-Uri manifestUrl(AppConfig config) =>
-    config.apiBaseUrl.resolve('/apps/latest.json');
+/// For trying an update against a server on this PC, start the app with
+///   MBUNIEMAIL_UPDATE_URL=http://127.0.0.1:8765/latest.json
+/// Only loopback addresses are accepted, so it cannot point at another host.
+Uri manifestUrl(AppConfig config) {
+  final o = Uri.tryParse(
+    kIsWeb ? '' : Platform.environment['MBUNIEMAIL_UPDATE_URL'] ?? '',
+  );
+  if (o != null &&
+      const {'http', 'https'}.contains(o.scheme) &&
+      const {'127.0.0.1', 'localhost'}.contains(o.host)) {
+    return o;
+  }
+  return config.apiBaseUrl.resolve('/apps/latest.json');
+}
 
 class AndroidUpdater extends AppUpdater {
   AndroidUpdater(this._config);
@@ -158,23 +170,19 @@ class WindowsUpdater extends AppUpdater {
     }
     final script = File('${zip.parent.path}\\apply-update.ps1');
     await script.writeAsString(_applyScript);
-    await Process.start('powershell.exe', [
-      '-NoProfile',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-WindowStyle',
-      'Hidden',
-      '-File',
-      script.path,
-      '-ProcessId',
-      '$pid',
-      '-Zip',
-      zip.path,
-      '-InstallDir',
-      dir.path,
-      '-Exe',
-      exe.path,
-      if (relaunch) '-Relaunch',
+    // PowerShell exits at once when started without a console, which is what
+    // ProcessStartMode.detached does, so cmd's `start` gives it a (hidden) one.
+    final launcher = File('${zip.parent.path}\\apply-update.cmd');
+    await launcher.writeAsString(
+      '@chcp 65001 >nul\r\n'
+      '@start "" /min powershell.exe -NoProfile -ExecutionPolicy Bypass '
+      '-WindowStyle Hidden -File "${script.path}" -ProcessId $pid '
+      '-Zip "${zip.path}" -InstallDir "${dir.path}" -Exe "${exe.path}"'
+      '${relaunch ? ' -Relaunch' : ''}\r\n',
+    );
+    await Process.start('cmd.exe', [
+      '/c',
+      launcher.path,
     ], mode: ProcessStartMode.detached);
     _ready = null;
     await exitApp?.call();
@@ -238,7 +246,9 @@ class WindowsUpdater extends AppUpdater {
   static const _applyScript = r'''
 param([int]$ProcessId, [string]$Zip, [string]$InstallDir, [string]$Exe, [switch]$Relaunch)
 $ErrorActionPreference = 'Stop'
-Wait-Process -Id $ProcessId -Timeout 60 -ErrorAction SilentlyContinue
+Start-Transcript -Path (Join-Path (Split-Path $Zip) 'apply-update.log') -Force | Out-Null
+Wait-Process -Id $ProcessId -Timeout 30 -ErrorAction SilentlyContinue
+Stop-Process -Id $ProcessId -Force -ErrorAction SilentlyContinue
 Start-Sleep -Milliseconds 500
 $stage = Join-Path (Split-Path $Zip) 'stage'
 try {
