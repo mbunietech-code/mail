@@ -22,7 +22,8 @@ use Illuminate\Support\Facades\Route;
 Route::redirect('/', '/admin');
 
 // App downloads for employees: the newest uploaded APK, and what the apps check to update themselves.
-Route::get('apps/apk', [AppDownloadController::class, 'latestApk'])->name('apps.apk');
+Route::get('download', [AppDownloadController::class, 'page'])->name('download');
+Route::get('apps/apk',[AppDownloadController::class, 'latestApk'])->name('apps.apk');
 Route::get('apps/windows', [AppDownloadController::class, 'latestWindowsInstaller'])->name('apps.windows');
 Route::get('apps/latest.json', [AppDownloadController::class, 'manifest'])->name('apps.manifest');
 

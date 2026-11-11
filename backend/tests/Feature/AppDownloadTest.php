@@ -88,6 +88,19 @@ class AppDownloadTest extends TestCase
         $this->get('/apps/apk')->assertRedirect(asset('downloads/'.rawurlencode('MbunieMail-1.0.0+1.apk')));
     }
 
+    public function test_download_page_links_the_newest_builds(): void
+    {
+        $this->apk('1.0.0+77');
+        $this->upload('MbunieMail-1.0.0+78.exe', 'exe');
+
+        $this->get('/download')
+            ->assertOk()
+            ->assertSee('Download for Android')
+            ->assertSee('Download for Windows')
+            ->assertSee(route('apps.apk'), false)
+            ->assertSee(route('apps.windows'), false);
+    }
+
     public function test_windows_installer_redirects_to_the_newest_exe(): void
     {
         $this->upload('MbunieMail-1.0.0+3.exe', 'exe');

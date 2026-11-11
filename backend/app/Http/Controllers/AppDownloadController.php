@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\View\View;
 
 /**
  * App downloads in public/downloads (not committed). The web server serves the files
@@ -26,6 +27,23 @@ class AppDownloadController extends Controller
 
     /** Platforms whose apps update themselves (the installer is only for new PCs). */
     private const UPDATING = ['android', 'windows'];
+
+    /** GET /download: a page with a button for the newest build of each platform. */
+    public function page(): View
+    {
+        $builds = [];
+        foreach (['android' => 'apps.apk', 'windows-installer' => 'apps.windows'] as $platform => $route) {
+            if ($file = self::latest($platform)) {
+                $builds[$platform] = [
+                    'version' => self::version($platform, $file),
+                    'size' => round(filesize($file) / 1048576, 1).' MB',
+                    'url' => route($route),
+                ];
+            }
+        }
+
+        return view('download', ['builds' => $builds]);
+    }
 
     /** GET /apps/apk: the newest Android build, for people installing by hand. */
     public function latestApk(): RedirectResponse
