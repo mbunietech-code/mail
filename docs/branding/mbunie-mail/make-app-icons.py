@@ -3,8 +3,11 @@
 #   app/assets/tray_icon.ico                   notification-area icon
 #   app/android/app/src/main/res/mipmap-*/     Android launcher (adaptive + legacy)
 #   app/assets/logo.png, logo_mark.png         in-app logo (lib/shared/brand_logo.dart)
+#   app/ios/Runner/Assets.xcassets/AppIcon.appiconset    iPhone/iPad (square, no alpha; iOS rounds it)
+#   app/macos/Runner/Assets.xcassets/AppIcon.appiconset  Mac (rounded tile with Apple's margin)
 # The ring of envelopes cannot be read at 16-32 px, so those sizes show the centre "M".
 #   python docs/branding/mbunie-mail/make-app-icons.py
+import json
 from pathlib import Path
 from PIL import Image, ImageDraw
 
@@ -57,3 +60,24 @@ for density, scale in {'mdpi': 1, 'hdpi': 1.5, 'xhdpi': 2, 'xxhdpi': 3, 'xxxhdpi
 
 logo(FULL, 512).convert('RGB').save(ROOT / 'app/assets/logo.png', optimize=True)
 logo(MARK, 256).convert('RGB').save(ROOT / 'app/assets/logo_mark.png', optimize=True)
+
+
+# iOS: an opaque full square; the system applies the rounded mask. App Store rejects alpha.
+IOS = ROOT / 'app/ios/Runner/Assets.xcassets/AppIcon.appiconset'
+for img in json.loads((IOS / 'Contents.json').read_text())['images']:
+    px = round(float(img['size'].split('x')[0]) * int(img['scale'].rstrip('x')))
+    square = Image.new('RGB', (px, px), (255, 255, 255))
+    inner = round(px * 0.92)
+    square.paste(logo(MARK if px <= 32 else FULL, inner).convert('RGB'), ((px - inner) // 2,) * 2)
+    square.save(IOS / img['filename'], optimize=True)
+
+# macOS: the white tile is 824/1024 of the canvas (Apple's icon grid), corners 22.5%.
+MAC = ROOT / 'app/macos/Runner/Assets.xcassets/AppIcon.appiconset'
+for img in json.loads((MAC / 'Contents.json').read_text())['images']:
+    px = round(float(img['size'].split('x')[0]) * int(img['scale'].rstrip('x')))
+    side = round(px * 824 / 1024)
+    t = tile(side, MARK if px <= 32 else FULL, 0.08 if px <= 32 else 0.04)
+    # tile() rounds at 22% of its own side, which matches the Big Sur icon shape.
+    canvas = Image.new('RGBA', (px, px), (0, 0, 0, 0))
+    canvas.paste(t, ((px - side) // 2,) * 2, t)
+    canvas.save(MAC / img['filename'], optimize=True)

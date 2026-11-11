@@ -48,7 +48,7 @@ This writes `dist\MbunieMail-<version>+<build>.exe` (double-click installer for 
 Sign the executables with the company code-signing certificate before distribution. Unsigned, Windows SmartScreen warns on first run.
 
 ## iPhone and Mac
-Bundle id `tz.co.mt.mbuniemail` and display name MbunieMail on both. Minimum iOS 15 and macOS 12; Flutter's macOS engine does not run on macOS 11. The icons in `ios/` and `macos/Runner/Assets.xcassets` are rendered from `MbunieMailLogo` (`lib/shared/brand_logo.dart`).
+Bundle id `tz.co.mt.mbuniemail` and display name MbunieMail on both. Minimum iOS 15 and macOS 12; Flutter's macOS engine does not run on macOS 11. The icons in `ios/` and `macos/Runner/Assets.xcassets` come from the full logo, like the Android and Windows icons (`docs/branding/mbunie-mail/make-app-icons.py`).
 
 **Signing.** macOS builds, and iOS builds for a real device, need the Apple Developer team: open `ios/Runner.xcworkspace` and `macos/Runner.xcworkspace` in Xcode and choose the team under Runner → Signing & Capabilities. Without one, `flutter build macos` stops with *"Runner" has entitlements that require signing with a development certificate*. The iOS simulator needs no signing.
 
