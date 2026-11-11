@@ -1,7 +1,10 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Session tokens. Production: Android Keystore (AES-GCM, RSA-OAEP wrapped key) and
-/// Windows DPAPI + Credential Manager via flutter_secure_storage — never plain files or
+import 'keychain_options.dart';
+
+/// Session tokens. Production: Android Keystore (AES-GCM, RSA-OAEP wrapped key),
+/// Windows DPAPI + Credential Manager, and the iOS/macOS Keychain (this device only)
+/// via flutter_secure_storage — never plain files or
 /// shared preferences (SDD ADR-006, risk R-14).
 abstract class TokenStore {
   Future<StoredSession?> read();
@@ -37,6 +40,8 @@ class SecureTokenStore implements TokenStore {
           storage ??
           const FlutterSecureStorage(
             aOptions: AndroidOptions(resetOnError: true),
+            iOptions: iosKeychain,
+            mOptions: macKeychain,
             wOptions: WindowsOptions(useBackwardCompatibility: false),
           );
 

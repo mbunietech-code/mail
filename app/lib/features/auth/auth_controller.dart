@@ -9,6 +9,7 @@ import '../../core/ids.dart';
 import '../../core/providers.dart';
 import '../../core/push/push_service.dart';
 import '../../core/storage/token_store.dart';
+import '../../core/storage/keychain_options.dart';
 
 sealed class AuthState {
   const AuthState();
@@ -193,21 +194,24 @@ class AuthController extends Notifier<AuthState> {
   }
 
   /// A stable per-install id lets users recognise and revoke this device (FR-AUTH-012).
+  ///
+  /// iOS and macOS report `other` (with a readable name) until the server accepts
+  /// `ios` and `macos`: the login endpoint rejects any other platform value.
   Future<Map<String, String>> _device() async {
     final store = ref.read(deviceIdStoreProvider);
     final id = await store.read() ?? await store.create();
-    final platform = kIsWeb
-        ? 'other'
-        : (Platform.isAndroid
-              ? 'android'
-              : (Platform.isWindows ? 'windows' : 'other'));
-    return {
-      'id': id,
-      'platform': platform,
-      'name': platform == 'android'
-          ? 'Android device'
-          : (platform == 'windows' ? 'Windows PC' : 'Device'),
-    };
+    final (platform, name) = kIsWeb
+        ? ('other', 'Device')
+        : Platform.isAndroid
+        ? ('android', 'Android device')
+        : Platform.isWindows
+        ? ('windows', 'Windows PC')
+        : Platform.isIOS
+        ? ('other', 'iPhone or iPad')
+        : Platform.isMacOS
+        ? ('other', 'Mac')
+        : ('other', 'Device');
+    return {'id': id, 'platform': platform, 'name': name};
   }
 }
 
@@ -228,6 +232,8 @@ class MemoryDeviceIdStore implements DeviceIdStore {
 class SecureDeviceIdStore implements DeviceIdStore {
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(resetOnError: true),
+    iOptions: iosKeychain,
+    mOptions: macKeychain,
   );
 
   @override

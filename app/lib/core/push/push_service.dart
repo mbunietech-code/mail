@@ -71,6 +71,12 @@ class MailNotifications {
     ledColor: brand,
   );
 
+  static const _darwinInit = DarwinInitializationSettings(
+    requestAlertPermission: false,
+    requestBadgePermission: false,
+    requestSoundPermission: false,
+  );
+
   final plugin = FlutterLocalNotificationsPlugin();
   Uint8List? _logo;
 
@@ -78,6 +84,9 @@ class MailNotifications {
     await plugin.initialize(
       settings: const InitializationSettings(
         android: AndroidInitializationSettings('@drawable/ic_stat_mail'),
+        // Permission is asked once, by FirebaseMessaging.requestPermission at sign-in.
+        iOS: _darwinInit,
+        macOS: _darwinInit,
       ),
       onDidReceiveNotificationResponse: (r) {
         final id = r.payload;
@@ -94,7 +103,7 @@ class MailNotifications {
   }
 
   Future<void> show(MailAlert a) async {
-    _logo ??= await _renderLogo();
+    if (Platform.isAndroid) _logo ??= await _renderLogo();
     const escape = HtmlEscape();
     final title = a.count > 1 ? a.title : a.sender;
     await plugin.show(
@@ -130,6 +139,11 @@ class MailNotifications {
           ledOnMs: 600,
           ledOffMs: 2400,
         ),
+        // iOS/macOS draw their own banner; one thread per account groups them.
+        iOS: DarwinNotificationDetails(threadIdentifier: 'mail-${a.accountId}'),
+        macOS: DarwinNotificationDetails(
+          threadIdentifier: 'mail-${a.accountId}',
+        ),
       ),
     );
   }
@@ -155,8 +169,9 @@ Future<void> firebaseBackgroundMessage(RemoteMessage message) async {
   await notifications.show(alert);
 }
 
-/// New-mail push on Android (FR-NOTIF-001). Firebase is optional: without a
-/// google-services.json the app runs normally and simply gets no push.
+/// New-mail push on Android, iOS and macOS (FR-NOTIF-001), through FCM (APNs on
+/// Apple). Firebase is optional: without google-services.json (Android) or
+/// GoogleService-Info.plist (iOS, macOS) the app runs normally and simply gets no push.
 ///
 /// The server sends data-only messages; the app draws them (see [MailNotifications]),
 /// or shows the in-app banner when it is open.
@@ -179,7 +194,11 @@ class PushService {
   Stream<MailAlert> get incoming => _incoming.stream;
 
   Future<void> init() async {
-    if (_ready || kIsWeb || !Platform.isAndroid) return;
+    if (_ready ||
+        kIsWeb ||
+        !(Platform.isAndroid || Platform.isIOS || Platform.isMacOS)) {
+      return;
+    }
     try {
       await Firebase.initializeApp();
     } catch (e) {
@@ -206,12 +225,19 @@ class PushService {
   Future<void> register() async {
     if (!_ready) return;
     final messaging = FirebaseMessaging.instance;
-    await messaging
-        .requestPermission(); // Android 13+ asks; older versions allow
+    // Android 13+, iOS and macOS ask once; older Android versions allow.
+    await messaging.requestPermission();
     // Registration tokens (not the newer FID register() flow) are what the backend's
     // FCM HTTP v1 "token" target expects.
-    // ignore: deprecated_member_use
-    final token = await messaging.getToken();
+    final String? token;
+    try {
+      // ignore: deprecated_member_use
+      token = await messaging.getToken();
+    } catch (e) {
+      // iOS/macOS: no APNs token yet (simulator, or push not enabled for the app ID).
+      debugPrint('Push token unavailable: $e');
+      return;
+    }
     if (token != null) await _send(token);
     // ignore: deprecated_member_use
     _tokenRefresh ??= messaging.onTokenRefresh.listen(_send);

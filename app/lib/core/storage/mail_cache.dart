@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'keychain_options.dart';
+
 /// Offline copy of mail the user has already loaded (folders, list pages, opened
 /// messages), so the app still shows it without a connection. Nothing here is
 /// authoritative: the server is always tried first.
@@ -31,6 +33,8 @@ class EncryptedFileMailCache implements MailCache {
            storage ??
            const FlutterSecureStorage(
              aOptions: AndroidOptions(resetOnError: true),
+             iOptions: iosKeychain,
+             mOptions: macKeychain,
              wOptions: WindowsOptions(useBackwardCompatibility: false),
            ),
        _baseDir = baseDir ?? getApplicationSupportDirectory;

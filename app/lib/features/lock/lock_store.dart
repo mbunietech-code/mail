@@ -6,6 +6,8 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../core/storage/keychain_options.dart';
+
 /// App-lock settings, kept in the platform keystore with the session tokens.
 /// The PIN itself is never stored: only a salted PBKDF2-HMAC-SHA256 hash.
 class LockConfig {
@@ -85,6 +87,8 @@ class SecureLockStore implements LockStore {
           storage ??
           const FlutterSecureStorage(
             aOptions: AndroidOptions(resetOnError: true),
+            iOptions: iosKeychain,
+            mOptions: macKeychain,
             wOptions: WindowsOptions(useBackwardCompatibility: false),
           );
 

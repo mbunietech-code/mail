@@ -1,6 +1,6 @@
-# MbunieMail app (Android + Windows)
+# MbunieMail app (Android, Windows, iPhone, Mac)
 
-Flutter client for the MbunieMail API. One codebase; Android 8.0+ and Windows 10/11.
+Flutter client for the MbunieMail API. One codebase; Android 8.0+, Windows 10/11, iOS 15+ and macOS 12+.
 
 ## Run (development)
 Start the backend first (repository README), then:
@@ -9,6 +9,8 @@ cd app
 flutter pub get
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080        # Android emulator → dev host
 flutter run -d windows --dart-define=API_BASE_URL=http://localhost:8080   # on a Windows PC
+flutter run -d "iPhone 16 Pro" --dart-define=API_BASE_URL=http://localhost:8080   # iOS simulator (on a Mac)
+flutter run -d macos --dart-define=API_BASE_URL=http://localhost:8080             # on a Mac
 ```
 Plain HTTP works only in **debug** builds (`android/app/src/debug/AndroidManifest.xml`). Release builds refuse a non-HTTPS `API_BASE_URL` at start-up.
 
@@ -45,6 +47,28 @@ This writes `dist\MbunieMail-<version>+<build>.exe` (double-click installer for 
 
 Sign the executables with the company code-signing certificate before distribution. Unsigned, Windows SmartScreen warns on first run.
 
+## iPhone and Mac
+Bundle id `tz.co.mt.mbuniemail` and display name MbunieMail on both. Minimum iOS 15 and macOS 12; Flutter's macOS engine does not run on macOS 11. The icons in `ios/` and `macos/Runner/Assets.xcassets` are rendered from `MbunieMailLogo` (`lib/shared/brand_logo.dart`).
+
+**Signing.** macOS builds, and iOS builds for a real device, need the Apple Developer team: open `ios/Runner.xcworkspace` and `macos/Runner.xcworkspace` in Xcode and choose the team under Runner → Signing & Capabilities. Without one, `flutter build macos` stops with *"Runner" has entitlements that require signing with a development certificate*. The iOS simulator needs no signing.
+
+**Entitlements.**
+- iOS (`ios/Runner/Runner.entitlements`): `aps-environment` for push.
+- macOS (`macos/Runner/Release.entitlements`): App Sandbox; outgoing network connections only; read-write access to files the user picks (attachments in and out, through file_picker); `keychain-access-groups` for flutter_secure_storage; and `aps-environment` for push. `DebugProfile.entitlements` also allows JIT and incoming connections, which `flutter run` needs.
+- Hardened Runtime is on for macOS, which notarization requires.
+
+**Plugins.**
+- `window_manager`, `tray_manager` and `screen_retriever` are Windows-only in the Dart code (`Platform.isWindows`). They have no iOS implementation, so iOS doesn't include them.
+- The automatic updater does nothing on iOS and macOS, which update through the App Store, TestFlight or a new download.
+- Face ID needs `NSFaceIDUsageDescription` in `ios/Runner/Info.plist`.
+
+**Push** goes through FCM and APNs. It needs:
+- `ios/Runner/GoogleService-Info.plist` and `macos/Runner/GoogleService-Info.plist` from the Firebase project, added to the Runner target in Xcode;
+- an APNs key uploaded to Firebase;
+- server support: the API accepts only `android`, `windows` and `other` as device platforms, so iOS and macOS sign in as `other`, and `PushNewMailJob` sends only to `android`.
+
+Without the plist the app runs normally and gets no push.
+
 ## Automatic updates
 Installed apps update themselves from `GET /apps/latest.json` on the server, which lists the newest file in `backend/public/downloads/` per platform. To release, upload with the build number in the name:
 - Android: `MbunieMail-<version>+<build>.apk`, for example `MbunieMail-1.0.0+58.apk`
@@ -58,7 +82,10 @@ The app installs a build whose `<build>` is higher than its own, after checking 
 Closing the window hides MbunieMail in the notification area; it keeps syncing there. Click the tray icon to open it; right-click for *Start with Windows* (on by default, starts hidden in the tray) and *Quit MbunieMail*. Opening MbunieMail again brings back the running window instead of starting a second copy.
 
 ## Security design (summary)
-- **Tokens:** stored in `flutter_secure_storage`. On Android that's AES-GCM with an RSA-OAEP key held in the Android Keystore; on Windows it's DPAPI plus Credential Manager (verified in the 11.2.0 sources). Nothing goes in plain preferences or files. Android backup and device transfer are disabled.
+- **Tokens:** stored in `flutter_secure_storage`.
+  - Android: AES-GCM with an RSA-OAEP key held in the Android Keystore.
+  - Windows: DPAPI plus Credential Manager (verified in the 11.2.0 sources).
+  - iOS and macOS: the Keychain, `first_unlock_this_device` (`lib/core/storage/keychain_options.dart`). Items never sync to iCloud and are never restored from a backup or moved to a new device. Nothing goes in plain preferences or files. Android backup and device transfer are disabled.
 - **Token refresh:** single-flight; a server-side revocation wipes the device's session on its next request.
 - **Email HTML:** rendered as native widgets (no WebView, no JavaScript). Images:
   - `cid:` images load from the message's attachments;
