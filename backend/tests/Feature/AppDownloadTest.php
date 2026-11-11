@@ -101,6 +101,46 @@ class AppDownloadTest extends TestCase
             ->assertSee(route('apps.windows'), false);
     }
 
+    public function test_mac_redirects_to_the_newest_dmg_and_the_page_offers_it(): void
+    {
+        $this->upload('MbunieMail-1.0.0+49.dmg', 'dmg');
+        $this->upload('MbunieMail-1.0.0+50.dmg', 'dmg');
+        $this->upload('MbunieMail-1.0.0+60.exe', 'exe');
+
+        $this->get('/apps/mac')
+            ->assertRedirect(asset('downloads/'.rawurlencode('MbunieMail-1.0.0+50.dmg')))
+            ->assertHeader('Cache-Control', 'no-store, private');
+
+        $this->get('/download')
+            ->assertOk()
+            ->assertSee('Download for Mac')
+            ->assertSee(route('apps.mac'), false)
+            ->assertSee('v1.0.0+50');
+    }
+
+    public function test_mac_builds_are_not_in_the_update_manifest(): void
+    {
+        $this->upload('MbunieMail-1.0.0+50.dmg', 'dmg');
+
+        $this->get('/apps/latest.json')->assertOk()->assertJsonMissingPath('mac');
+    }
+
+    public function test_iphone_links_to_testflight_or_the_app_store_when_configured(): void
+    {
+        $this->get('/download')->assertOk()->assertDontSee('Install with TestFlight');
+
+        config(['mbuniemail.apps.ios_url' => 'https://testflight.apple.com/join/AbCdEf12']);
+        $this->get('/download')
+            ->assertSee('Install with TestFlight')
+            ->assertSee('https://testflight.apple.com/join/AbCdEf12', false);
+
+        config(['mbuniemail.apps.ios_url' => 'https://apps.apple.com/app/mbuniemail/id1234567890']);
+        $this->get('/download')->assertSee('Get it on the App Store')->assertDontSee('Install with TestFlight');
+
+        config(['mbuniemail.apps.ios_url' => 'http://example.test/not-https']);
+        $this->get('/download')->assertDontSee('example.test');
+    }
+
     public function test_windows_installer_redirects_to_the_newest_exe(): void
     {
         $this->upload('MbunieMail-1.0.0+3.exe', 'exe');

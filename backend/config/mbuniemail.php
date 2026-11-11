@@ -159,6 +159,12 @@ return [
         'fcm_credentials' => env('MBUNIEMAIL_FCM_CREDENTIALS', ''),
     ],
 
+    'apps' => [
+        // iPhones cannot install from a website: /download links here instead
+        // (a TestFlight public link or the App Store page). Empty = "Coming soon".
+        'ios_url' => env('MBUNIEMAIL_IOS_APP_URL'),
+    ],
+
     'users' => [
         // Personal data of deactivated users is deleted after this many days unless on legal hold.
         'deactivated_retention_days' => (int) env('MBUNIEMAIL_DEACTIVATED_RETENTION_DAYS', 30),

@@ -28,6 +28,7 @@ Route::view('privacy', 'privacy', ['contact' => config('mail.privacy_contact')])
 Route::get('download', [AppDownloadController::class, 'page'])->name('download');
 Route::get('apps/apk',[AppDownloadController::class, 'latestApk'])->name('apps.apk');
 Route::get('apps/windows', [AppDownloadController::class, 'latestWindowsInstaller'])->name('apps.windows');
+Route::get('apps/mac', [AppDownloadController::class, 'latestMac'])->name('apps.mac');
 Route::get('apps/latest.json', [AppDownloadController::class, 'manifest'])->name('apps.manifest');
 
 // Email links (invitation, password reset). Tokens travel in the URL fragment.

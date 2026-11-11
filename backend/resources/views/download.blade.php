@@ -51,8 +51,14 @@
                 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-3-.79-1.54.02-2.96.9-3.76 2.28-1.6 2.78-.41 6.9 1.15 9.16.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.77.74 2.98.72 1.23-.02 2.01-1.12 2.76-2.23.87-1.28 1.23-2.51 1.25-2.58-.03-.01-2.4-.92-2.42-3.66zM14.1 5.84c.63-.77 1.06-1.83.94-2.89-.91.04-2.01.6-2.66 1.37-.58.67-1.1 1.76-.96 2.8 1.01.08 2.05-.52 2.68-1.28z"/></svg>
             </div>
             <h2>macOS</h2>
-            <p class="desc">MbunieMail for Mac, on Apple Silicon and Intel.</p>
-            <a class="btn btn-disabled" aria-disabled="true">Coming soon</a>
+            <p class="desc">MbunieMail for Mac, on Apple Silicon and Intel (macOS 12 or later).</p>
+            @isset($builds['mac'])
+                <a class="btn btn-primary" href="{{ $builds['mac']['url'] }}">Download for Mac ↓</a>
+                <p class="meta">{{ $builds['mac']['size'] }} · v{{ $builds['mac']['version'] }}</p>
+                <p class="note">Open the downloaded file and drag <strong>MbunieMail</strong> into <strong>Applications</strong>.</p>
+            @else
+                <a class="btn btn-disabled" aria-disabled="true">Coming soon</a>
+            @endisset
         </div>
 
         <div class="card">
@@ -61,7 +67,17 @@
             </div>
             <h2>iPhone &amp; iPad</h2>
             <p class="desc">Install MbunieMail from Apple on iOS 15 or later.</p>
-            <a class="btn btn-disabled" aria-disabled="true">Coming soon</a>
+            @isset($builds['ios'])
+                @if ($builds['ios']['testflight'])
+                    <a class="btn btn-primary" href="{{ $builds['ios']['url'] }}" rel="noopener">Install with TestFlight ↗</a>
+                    <p class="note">Open this link on your iPhone or iPad. Apple asks you to install the free <strong>TestFlight</strong> app first.</p>
+                @else
+                    <a class="btn btn-primary" href="{{ $builds['ios']['url'] }}" rel="noopener">Get it on the App Store ↗</a>
+                    <p class="note">Open this link on your iPhone or iPad.</p>
+                @endif
+            @else
+                <a class="btn btn-disabled" aria-disabled="true">Coming soon</a>
+            @endisset
         </div>
     </div>
 

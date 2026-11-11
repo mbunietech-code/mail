@@ -13,9 +13,11 @@ use Illuminate\View\View;
  *   MbunieMail-<version>+<build>.apk          (Android)
  *   MbunieMail-<version>+<build>.exe          (Windows installer, for new PCs)
  *   MbunieMail-<version>+<build>-windows.zip  (Windows update: the contents of the Release folder)
+ *   MbunieMail-<version>+<build>.dmg          (Mac: signed, notarized and stapled)
  * where <build> is the --build-number the app was built with; app/windows/installer/
- * build-installer.ps1 makes both Windows files. The apps update themselves from
- * GET /apps/latest.json.
+ * build-installer.ps1 makes both Windows files. Android and Windows update themselves
+ * from GET /apps/latest.json. iPhones install from Apple, so the page links to
+ * mbuniemail.apps.ios_url (TestFlight or the App Store) instead of a file.
  */
 class AppDownloadController extends Controller
 {
@@ -23,6 +25,7 @@ class AppDownloadController extends Controller
         'android' => '/^MbunieMail-([0-9][0-9A-Za-z.+]*)\.apk$/',
         'windows' => '/^MbunieMail-([0-9][0-9A-Za-z.+]*)-windows\.zip$/',
         'windows-installer' => '/^MbunieMail-([0-9][0-9A-Za-z.+]*)\.exe$/',
+        'mac' => '/^MbunieMail-([0-9][0-9A-Za-z.+]*)\.dmg$/',
     ];
 
     /** Platforms whose apps update themselves (the installer is only for new PCs). */
@@ -32,7 +35,7 @@ class AppDownloadController extends Controller
     public function page(): View
     {
         $builds = [];
-        foreach (['android' => 'apps.apk', 'windows-installer' => 'apps.windows'] as $platform => $route) {
+        foreach (['android' => 'apps.apk', 'windows-installer' => 'apps.windows', 'mac' => 'apps.mac'] as $platform => $route) {
             if ($file = self::latest($platform)) {
                 $builds[$platform] = [
                     'version' => self::version($platform, $file),
@@ -40,6 +43,14 @@ class AppDownloadController extends Controller
                     'url' => route($route),
                 ];
             }
+        }
+
+        $ios = (string) config('mbuniemail.apps.ios_url');
+        if (str_starts_with($ios, 'https://')) {
+            $builds['ios'] = [
+                'url' => $ios,
+                'testflight' => parse_url($ios, PHP_URL_HOST) === 'testflight.apple.com',
+            ];
         }
 
         return view('download', ['builds' => $builds]);
@@ -55,6 +66,12 @@ class AppDownloadController extends Controller
     public function latestWindowsInstaller(): RedirectResponse
     {
         return self::redirectToLatest('windows-installer');
+    }
+
+    /** GET /apps/mac: the newest Mac disk image. */
+    public function latestMac(): RedirectResponse
+    {
+        return self::redirectToLatest('mac');
     }
 
     private static function redirectToLatest(string $platform): RedirectResponse
