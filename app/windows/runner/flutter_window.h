@@ -28,6 +28,12 @@ class FlutterWindow : public Win32Window {
 
   // The Flutter instance hosted by this window.
   std::unique_ptr<flutter::FlutterViewController> flutter_controller_;
+
+  // Set when Windows resumed from sleep or the display changed while the window
+  // was hidden in the tray. Flutter's graphics surface does not survive that, so
+  // the window would open blank: the app restarts itself instead (RestartApp).
+  bool stale_while_hidden_ = false;
+  void RestartApp();
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

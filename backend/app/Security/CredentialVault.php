@@ -14,6 +14,10 @@ use RuntimeException;
  *  - the DEK is sealed under the current key-encryption key (KEK) from the KeyRing,
  *    which lives outside the database and `.env`.
  * Rotating the KEK only requires re-wrapping DEKs, not re-encrypting secrets.
+ *
+ * Uses the sodium extension when PHP has it, otherwise paragonie/sodium_compat
+ * (same algorithm, pure PHP), so mail keeps working if the host turns the
+ * extension off.
  */
 class CredentialVault
 {
@@ -44,8 +48,8 @@ class CredentialVault
                 'kek_version' => $version,
             ];
         } finally {
-            sodium_memzero($plain);
-            sodium_memzero($dek);
+            self::wipe($plain);
+            self::wipe($dek);
         }
     }
 
@@ -65,7 +69,7 @@ class CredentialVault
                 $dek,
             );
         } finally {
-            sodium_memzero($dek);
+            self::wipe($dek);
         }
 
         if ($plain === false) {
@@ -73,7 +77,7 @@ class CredentialVault
         }
 
         $data = json_decode($plain, true, flags: JSON_THROW_ON_ERROR);
-        sodium_memzero($plain);
+        self::wipe($plain);
 
         return array_map(fn ($v) => is_string($v) ? new Secret($v) : $v, $data);
     }
@@ -93,10 +97,25 @@ class CredentialVault
                 'kek_version' => $current,
             ])->save();
         } finally {
-            sodium_memzero($dek);
+            self::wipe($dek);
         }
 
         return true;
+    }
+
+    /** Clears a secret from memory (best effort without the sodium extension). */
+    private static function wipe(#[\SensitiveParameter] ?string &$value): void
+    {
+        if ($value === null) {
+            return;
+        }
+        if (extension_loaded('sodium')) {
+            \sodium_memzero($value);
+
+            return;
+        }
+        $value = str_repeat("\0", strlen($value));
+        $value = null;
     }
 
     private function wrap(string $dek, string $accountId, int $version): string

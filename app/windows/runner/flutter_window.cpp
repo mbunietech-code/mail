@@ -1,6 +1,7 @@
 #include "flutter_window.h"
 
 #include <optional>
+#include <string>
 
 #include "flutter/generated_plugin_registrant.h"
 
@@ -42,6 +43,27 @@ bool FlutterWindow::OnCreate() {
   return true;
 }
 
+// Starts a fresh MbunieMail (shown, not in the tray) and ends this one at once.
+// `--restart` makes the new process wait for this one's single-instance lock
+// instead of handing over to this window (main.cpp).
+void FlutterWindow::RestartApp() {
+  wchar_t exe[MAX_PATH];
+  if (!::GetModuleFileNameW(nullptr, exe, MAX_PATH)) return;
+  std::wstring command = L"\"" + std::wstring(exe) + L"\" --restart";
+  STARTUPINFOW startup = {sizeof(startup)};
+  PROCESS_INFORMATION process = {};
+  if (!::CreateProcessW(exe, command.data(), nullptr, nullptr, FALSE, 0,
+                        nullptr, nullptr, &startup, &process)) {
+    return;
+  }
+  // Let the new window come to the front, as this one would have.
+  ::AllowSetForegroundWindow(process.dwProcessId);
+  ::CloseHandle(process.hThread);
+  ::CloseHandle(process.hProcess);
+  ::ShowWindow(GetHandle(), SW_HIDE);
+  ::ExitProcess(0);
+}
+
 void FlutterWindow::OnDestroy() {
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
@@ -67,6 +89,24 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   switch (message) {
     case WM_FONTCHANGE:
       flutter_controller_->engine()->ReloadSystemFonts();
+      break;
+    case WM_POWERBROADCAST:
+      if ((wparam == PBT_APMRESUMEAUTOMATIC || wparam == PBT_APMRESUMESUSPEND) &&
+          !::IsWindowVisible(hwnd)) {
+        stale_while_hidden_ = true;
+      }
+      break;
+    case WM_DISPLAYCHANGE:
+      if (!::IsWindowVisible(hwnd)) stale_while_hidden_ = true;
+      break;
+    case WM_SHOWWINDOW:
+      if (wparam) {
+        if (stale_while_hidden_) {
+          RestartApp();
+        } else if (flutter_controller_) {
+          flutter_controller_->ForceRedraw();
+        }
+      }
       break;
   }
 

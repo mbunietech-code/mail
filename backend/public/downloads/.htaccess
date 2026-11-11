@@ -1,4 +1,5 @@
-# App downloads (builds are uploaded to the server, not committed).
+# App downloads: Android APKs, the Windows installer and Windows update packages
+# (uploaded to the server, not committed).
 Options -Indexes
 AddType application/vnd.android.package-archive .apk
 AddType application/vnd.microsoft.portable-executable .exe

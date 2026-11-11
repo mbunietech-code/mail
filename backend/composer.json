@@ -11,6 +11,7 @@
         "laravel/framework": "^13.17",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
+        "paragonie/sodium_compat": "^2.1",
         "pragmarx/google2fa": "^9.1",
         "predis/predis": "^3.7",
         "symfony/html-sanitizer": "^8.1"

@@ -12,7 +12,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // start with Windows (`--background`) just exits.
   HANDLE single_instance =
       ::CreateMutexW(nullptr, TRUE, L"MbunieMail.SingleInstance");
-  if (single_instance && ::GetLastError() == ERROR_ALREADY_EXISTS) {
+  const bool already_running = single_instance && ::GetLastError() == ERROR_ALREADY_EXISTS;
+  if (already_running && wcsstr(command_line, L"--restart")) {
+    // Started by a window that went stale in the tray (flutter_window.cpp):
+    // wait for that process to exit, then carry on as the only MbunieMail.
+    DWORD waited = ::WaitForSingleObject(single_instance, 15000);
+    if (waited != WAIT_OBJECT_0 && waited != WAIT_ABANDONED) {
+      ::CloseHandle(single_instance);
+      return EXIT_FAILURE;
+    }
+  } else if (already_running) {
     HWND running = ::FindWindowW(L"FLUTTER_RUNNER_WIN32_WINDOW", L"MbunieMail");
     if (running && !wcsstr(command_line, L"--background")) {
       ::ShowWindow(running, ::IsIconic(running) ? SW_RESTORE : SW_SHOW);

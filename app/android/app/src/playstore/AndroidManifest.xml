@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- Google Play build (-P playStore=true): Play updates the app, and an app from
+         Play may not install updates itself, so self-update (AppUpdater.kt) is left out. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" tools:node="remove"/>
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" tools:node="remove"/>
+    <application>
+        <receiver android:name=".InstallResultReceiver" tools:node="remove"/>
+    </application>
+</manifest>

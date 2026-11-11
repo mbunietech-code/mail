@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../app.dart';
 import '../../core/providers.dart';
@@ -82,6 +83,15 @@ class SettingsScreen extends ConsumerWidget {
                     );
                     ref.invalidate(preferencesProvider);
                   },
+          ),
+          ListTile(
+            leading: const Icon(Icons.policy_outlined),
+            title: const Text('Privacy policy'),
+            trailing: const Icon(Icons.open_in_new),
+            onTap: () => launchUrl(
+              ref.read(configProvider).apiBaseUrl.resolve('/privacy'),
+              mode: LaunchMode.externalApplication,
+            ),
           ),
           const _Header('Signed-in devices'),
           ...sessions.when(

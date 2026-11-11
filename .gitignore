@@ -41,3 +41,6 @@ storage/*.key
 
 # Firebase service-account key for push (secret, per environment)
 infra/dev/fcm-service-account.json
+
+# Google Play bundles (built locally, uploaded to Play Console)
+/playstore/
