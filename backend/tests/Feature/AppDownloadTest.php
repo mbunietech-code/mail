@@ -95,8 +95,8 @@ class AppDownloadTest extends TestCase
 
         $this->get('/download')
             ->assertOk()
-            ->assertSee('Download for Android')
-            ->assertSee('Download for Windows')
+            ->assertSee('Download APK')
+            ->assertSee('Download Installer')
             ->assertSee(route('apps.apk'), false)
             ->assertSee(route('apps.windows'), false);
     }

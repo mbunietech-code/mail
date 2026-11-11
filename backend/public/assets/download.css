@@ -1,0 +1,68 @@
+/* Public app download page (/download). Matches the Mbunietech download pages. */
+:root {
+    --primary: #1E40AF;
+    --dark: #0F172A;
+    --amber: #F59E0B;
+    --slate: #64748B;
+    --slate-light: #94A3B8;
+    --success: #10B981;
+    --bg: #F8FAFC;
+    --card-bg: #FFFFFF;
+    --border: #E2E8F0;
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--dark);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 20px;
+}
+.brand { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.brand .mark { width: 48px; height: 48px; border-radius: 12px; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12); }
+.brand .name { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.brand .name span { color: var(--slate); font-weight: 500; font-size: 14px; display: block; margin-top: -2px; }
+h1 { font-size: 15px; font-weight: 500; color: var(--slate); margin: 4px 0 40px; text-align: center; }
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+    width: 100%;
+    max-width: 600px;
+}
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.card .icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 16px;
+}
+.card .icon svg { width: 22px; height: 22px; }
+.card h2 { font-size: 16px; margin: 0 0 4px; }
+.card p.desc { font-size: 13px; color: var(--slate); margin: 0 0 20px; line-height: 1.5; flex-grow: 1; }
+.card p.meta { font-size: 12px; color: var(--slate-light); margin: 10px 0 0; }
+.card p.note { font-size: 12px; color: var(--slate); margin: 10px 0 0; line-height: 1.5; }
+.btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    text-decoration: none; transition: opacity 0.15s;
+}
+.btn:hover { opacity: 0.88; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-disabled { background: var(--bg); color: var(--slate-light); border: 1px solid var(--border); cursor: not-allowed; pointer-events: none; }
+.icon-android { background: #ECFDF5; color: var(--success); }
+.icon-windows { background: #FFFBEB; color: var(--amber); }
+.icon-apple { background: #F1F5F9; color: var(--dark); }
+footer { margin-top: 56px; font-size: 12px; color: var(--slate-light); text-align: center; }
+footer a { color: var(--slate); }
